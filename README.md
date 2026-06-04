@@ -52,6 +52,34 @@ python3 -m http.server 8080
 http://localhost:8080
 ```
 
+## 发布到 GitHub Pages
+
+本项目已准备好发布脚本。先完成 GitHub CLI 登录：
+
+```bash
+gh auth login
+```
+
+然后运行：
+
+```bash
+./tools/publish-github-pages.sh
+```
+
+发布后网站地址通常是：
+
+```text
+https://ashore1001.github.io/gpa-calculator/
+```
+
+如果遇到本机权限或 GitHub 授权问题，可以先运行：
+
+```bash
+./tools/check-agent-setup.sh
+```
+
+更多配置说明见 `AGENT_SETUP.md`。
+
 ## 后续可改进方向
 
 - 支持自定义成绩到绩点的映射规则
