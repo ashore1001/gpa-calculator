@@ -25,7 +25,11 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   git commit -m "Add publishing setup"
 fi
 
-git push -u origin main
+git fetch origin main >/dev/null 2>&1 || true
+
+# The GitHub repository may contain a placeholder README created before the
+# local project was pushed. Replace that placeholder with this local history.
+git push -u origin main --force-with-lease
 
 if gh api "repos/${REPO}/pages" >/dev/null 2>&1; then
   gh api \
