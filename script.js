@@ -1,16 +1,33 @@
 const STORAGE_KEY = "gpa-calculator-courses-v1";
 
+const scoreBands = [
+  { min: 96, max: 100, point: 4.8 },
+  { min: 93, max: 95, point: 4.5 },
+  { min: 90, max: 92, point: 4.0 },
+  { min: 86, max: 89, point: 3.8 },
+  { min: 83, max: 85, point: 3.5 },
+  { min: 80, max: 82, point: 3.0 },
+  { min: 76, max: 79, point: 2.8 },
+  { min: 73, max: 75, point: 2.5 },
+  { min: 70, max: 72, point: 2.0 },
+  { min: 66, max: 69, point: 1.8 },
+  { min: 63, max: 65, point: 1.5 },
+  { min: 60, max: 62, point: 1.0 }
+];
+
 const legacyGradePoints = {
-  A: 5.0,
-  "A-": 4.7,
-  "B+": 4.3,
-  B: 4.0,
-  "B-": 3.7,
-  "C+": 3.3,
-  C: 3.0,
-  "C-": 2.7,
-  "D+": 2.3,
-  D: 2.0,
+  "A+": 4.8,
+  A: 4.5,
+  "A-": 4.0,
+  "B+": 3.8,
+  B: 3.5,
+  "B-": 3.0,
+  "C+": 2.8,
+  C: 2.5,
+  "C-": 2.0,
+  "D+": 1.8,
+  D: 1.5,
+  "D-": 1.0,
   F: 0
 };
 
@@ -378,7 +395,10 @@ function isValidScore(score) {
 function scoreToPoint(score) {
   const numericScore = Number(score);
   if (!isValidScore(numericScore) || numericScore < 60) return 0;
-  return Math.min(5, (numericScore - 50) / 10);
+
+  const roundedScore = Math.floor(numericScore);
+  const matchedBand = scoreBands.find((band) => roundedScore >= band.min && roundedScore <= band.max);
+  return matchedBand ? matchedBand.point : 0;
 }
 
 function legacyScoreFromGrade(grade) {
