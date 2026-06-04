@@ -1,6 +1,6 @@
 const STORAGE_KEY = "gpa-calculator-courses-v1";
 
-const gradePoints = {
+const legacyGradePoints = {
   A: 5.0,
   "A-": 4.7,
   "B+": 4.3,
@@ -21,7 +21,7 @@ const courseIdInput = document.querySelector("#courseId");
 const courseNameInput = document.querySelector("#courseName");
 const semesterInput = document.querySelector("#semester");
 const creditsInput = document.querySelector("#credits");
-const gradeInput = document.querySelector("#grade");
+const scoreInput = document.querySelector("#score");
 const formTitle = document.querySelector("#formTitle");
 const submitBtn = document.querySelector("#submitBtn");
 const cancelEditBtn = document.querySelector("#cancelEditBtn");
@@ -58,9 +58,9 @@ function handleCourseSubmit(event) {
   const name = courseNameInput.value.trim();
   const semester = semesterInput.value.trim();
   const credits = Number.parseFloat(creditsInput.value);
-  const grade = gradeInput.value;
+  const score = Number.parseFloat(scoreInput.value);
 
-  if (!name || !semester || !Number.isFinite(credits) || credits <= 0 || !gradePoints.hasOwnProperty(grade)) {
+  if (!name || !semester || !Number.isFinite(credits) || credits <= 0 || !isValidScore(score)) {
     alert("请填写完整且有效的课程信息。");
     return;
   }
@@ -71,7 +71,7 @@ function handleCourseSubmit(event) {
     name,
     semester,
     credits,
-    grade
+    score
   };
 
   if (editingId) {
@@ -127,8 +127,8 @@ function renderCourseTable() {
         <td><span class="course-title">${escapeHtml(course.name)}</span></td>
         <td>${escapeHtml(course.semester)}</td>
         <td>${formatCredits(course.credits)}</td>
-        <td><span class="grade-badge">${course.grade}</span></td>
-        <td>${formatGpa(gradePoints[course.grade])}</td>
+        <td><span class="grade-badge">${formatScore(course.score)}</span></td>
+        <td>${formatGpa(scoreToPoint(course.score))}</td>
         <td>
           <div class="row-actions">
             <button type="button" data-id="${course.id}" class="edit-course">编辑</button>
@@ -224,7 +224,7 @@ function startEdit(id) {
   courseNameInput.value = course.name;
   semesterInput.value = course.semester;
   creditsInput.value = course.credits;
-  gradeInput.value = course.grade;
+  scoreInput.value = course.score;
   formTitle.textContent = "编辑课程";
   submitBtn.textContent = "保存修改";
   cancelEditBtn.classList.remove("hidden");
@@ -265,13 +265,13 @@ function exportCsv() {
     return;
   }
 
-  const headers = ["课程名称", "学期", "学分", "成绩", "绩点"];
+  const headers = ["课程名称", "学期", "学分", "分数", "绩点"];
   const rows = courses.map((course) => [
     course.name,
     course.semester,
     formatCredits(course.credits),
-    course.grade,
-    formatGpa(gradePoints[course.grade])
+    formatScore(course.score),
+    formatGpa(scoreToPoint(course.score))
   ]);
 
   const csv = [headers, ...rows]
@@ -326,8 +326,7 @@ function getTotalCredits(courseList) {
 
 function getTotalPoints(courseList) {
   return courseList.reduce((sum, course) => {
-    const point = gradePoints[course.grade] ?? 0;
-    return sum + point * Number(course.credits || 0);
+    return sum + scoreToPoint(course.score) * Number(course.credits || 0);
   }, 0);
 }
 
@@ -339,20 +338,55 @@ function loadCourses() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter(isValidCourse) : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeCourse).filter(Boolean) : [];
   } catch (error) {
     console.warn("Failed to load GPA courses:", error);
     return [];
   }
 }
 
-function isValidCourse(course) {
-  return course
+function normalizeCourse(course) {
+  if (!(course
     && typeof course.id === "string"
     && typeof course.name === "string"
     && typeof course.semester === "string"
-    && Number.isFinite(Number(course.credits))
-    && gradePoints.hasOwnProperty(course.grade);
+    && Number.isFinite(Number(course.credits)))) {
+    return null;
+  }
+
+  const score = isValidScore(Number(course.score))
+    ? Number(course.score)
+    : legacyScoreFromGrade(course.grade);
+
+  if (!isValidScore(score)) {
+    return null;
+  }
+
+  return {
+    id: course.id,
+    name: course.name,
+    semester: course.semester,
+    credits: Number(course.credits),
+    score
+  };
+}
+
+function isValidScore(score) {
+  return Number.isFinite(score) && score >= 0 && score <= 100;
+}
+
+function scoreToPoint(score) {
+  const numericScore = Number(score);
+  if (!isValidScore(numericScore) || numericScore < 60) return 0;
+  return Math.min(5, (numericScore - 50) / 10);
+}
+
+function legacyScoreFromGrade(grade) {
+  if (!legacyGradePoints.hasOwnProperty(grade)) {
+    return null;
+  }
+
+  return Math.min(100, Math.max(0, 50 + legacyGradePoints[grade] * 10));
 }
 
 function createId() {
@@ -364,6 +398,11 @@ function formatGpa(value) {
 }
 
 function formatCredits(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function formatScore(value) {
   const number = Number(value || 0);
   return Number.isInteger(number) ? String(number) : number.toFixed(1);
 }

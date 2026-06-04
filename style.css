@@ -257,6 +257,12 @@ select:focus {
   font-weight: 650;
 }
 
+.formula-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 .table-panel {
   margin-bottom: 18px;
 }

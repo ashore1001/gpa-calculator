@@ -60,24 +60,13 @@
             <input id="credits" name="credits" type="number" min="0.5" step="0.5" placeholder="3" required>
           </div>
           <div>
-            <label for="grade">成绩</label>
-            <select id="grade" name="grade" required>
-              <option value="A">A</option>
-              <option value="A-">A-</option>
-              <option value="B+">B+</option>
-              <option value="B">B</option>
-              <option value="B-">B-</option>
-              <option value="C+">C+</option>
-              <option value="C">C</option>
-              <option value="C-">C-</option>
-              <option value="D+">D+</option>
-              <option value="D">D</option>
-              <option value="F">F</option>
-            </select>
+            <label for="score">分数</label>
+            <input id="score" name="score" type="number" min="0" max="100" step="0.1" placeholder="95" required>
           </div>
         </div>
 
         <button class="primary-button" id="submitBtn" type="submit">添加课程</button>
+        <p class="formula-note">百分制换算：60 分 = 1.00，90 分 = 4.00，100 分 = 5.00；低于 60 分按 0 绩点。</p>
       </form>
 
       <section class="panel goal-panel" aria-labelledby="goalTitle">
@@ -116,7 +105,7 @@
               <th>课程</th>
               <th>学期</th>
               <th>学分</th>
-              <th>成绩</th>
+              <th>分数</th>
               <th>绩点</th>
               <th>操作</th>
             </tr>
