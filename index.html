@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPA Calculator | 5.0 绩点计算器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Student GPA Tool</p>
+        <h1>5.0 GPA 计算器</h1>
+        <p class="hero-copy">记录课程、管理多个学期成绩，并自动计算总 GPA 与学期 GPA。</p>
+      </div>
+      <div class="hero-actions">
+        <button class="secondary-button" id="exportCsvBtn" type="button">导出 CSV</button>
+        <button class="danger-button" id="clearAllBtn" type="button">清空数据</button>
+      </div>
+    </header>
+
+    <section class="summary-grid" aria-label="GPA 总览">
+      <article class="metric-card">
+        <span>总 GPA</span>
+        <strong id="overallGpa">0.00</strong>
+      </article>
+      <article class="metric-card">
+        <span>总学分</span>
+        <strong id="totalCredits">0</strong>
+      </article>
+      <article class="metric-card">
+        <span>课程数量</span>
+        <strong id="courseCount">0</strong>
+      </article>
+      <article class="metric-card">
+        <span>最高学期 GPA</span>
+        <strong id="bestSemester">暂无</strong>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <form class="panel course-form" id="courseForm">
+        <div class="panel-heading">
+          <h2 id="formTitle">添加课程</h2>
+          <button class="text-button hidden" id="cancelEditBtn" type="button">取消编辑</button>
+        </div>
+
+        <input type="hidden" id="courseId">
+
+        <label for="courseName">课程名称</label>
+        <input id="courseName" name="courseName" type="text" placeholder="例如：高等数学" required>
+
+        <label for="semester">学期</label>
+        <input id="semester" name="semester" type="text" placeholder="例如：2025 秋 / 大一上" required>
+
+        <div class="form-row">
+          <div>
+            <label for="credits">学分</label>
+            <input id="credits" name="credits" type="number" min="0.5" step="0.5" placeholder="3" required>
+          </div>
+          <div>
+            <label for="grade">成绩</label>
+            <select id="grade" name="grade" required>
+              <option value="A">A</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B">B</option>
+              <option value="B-">B-</option>
+              <option value="C+">C+</option>
+              <option value="C">C</option>
+              <option value="C-">C-</option>
+              <option value="D+">D+</option>
+              <option value="D">D</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="primary-button" id="submitBtn" type="submit">添加课程</button>
+      </form>
+
+      <section class="panel goal-panel" aria-labelledby="goalTitle">
+        <div class="panel-heading">
+          <h2 id="goalTitle">目标 GPA 计算</h2>
+        </div>
+        <label for="targetGpa">目标总 GPA</label>
+        <input id="targetGpa" type="number" min="0" max="5" step="0.01" placeholder="例如：4.20">
+
+        <label for="futureCredits">未来计划修读学分</label>
+        <input id="futureCredits" type="number" min="0.5" step="0.5" placeholder="例如：20">
+
+        <div class="goal-result" id="goalResult">输入目标 GPA 和未来学分后，会显示未来需要达到的平均 GPA。</div>
+      </section>
+    </section>
+
+    <section class="panel table-panel" aria-labelledby="courseListTitle">
+      <div class="panel-heading table-heading">
+        <div>
+          <h2 id="courseListTitle">课程记录</h2>
+          <p>数据会自动保存在本机浏览器中。</p>
+        </div>
+        <select id="semesterFilter" aria-label="按学期筛选">
+          <option value="all">全部学期</option>
+        </select>
+      </div>
+
+      <div class="empty-state" id="emptyState">
+        还没有课程。先添加第一门课，GPA 会自动算出来。
+      </div>
+
+      <div class="table-wrap hidden" id="courseTableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>课程</th>
+              <th>学期</th>
+              <th>学分</th>
+              <th>成绩</th>
+              <th>绩点</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="courseTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel semester-panel" aria-labelledby="semesterSummaryTitle">
+      <div class="panel-heading">
+        <h2 id="semesterSummaryTitle">学期 GPA</h2>
+      </div>
+      <div class="semester-list" id="semesterList"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
