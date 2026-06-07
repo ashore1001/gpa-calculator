@@ -83,6 +83,71 @@
       </section>
     </section>
 
+    <section class="insight-grid" aria-label="成绩洞察">
+      <section class="panel chart-panel" aria-labelledby="trendTitle">
+        <div class="panel-heading">
+          <div>
+            <h2 id="trendTitle">GPA 趋势</h2>
+            <p>查看每学期 GPA、累计 GPA 和学分增长。</p>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="gpaTrendChart" width="720" height="320" aria-label="GPA 趋势图"></canvas>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot semester-dot"></i>学期 GPA</span>
+          <span><i class="legend-dot cumulative-dot"></i>累计 GPA</span>
+          <span><i class="legend-dot credit-dot"></i>累计学分</span>
+        </div>
+        <div class="empty-state hidden" id="chartEmptyState">至少添加一门课程后，这里会显示趋势图。</div>
+      </section>
+
+      <section class="panel simulator-panel" aria-labelledby="simulatorTitle">
+        <div class="panel-heading">
+          <div>
+            <h2 id="simulatorTitle">成绩影响模拟器</h2>
+            <p>看看一门未来课程会把总 GPA 推到哪里。</p>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="simCredits">未来课程学分</label>
+            <input id="simCredits" type="number" min="0.25" step="0.25" placeholder="例如：5">
+          </div>
+          <div>
+            <label for="simScore">预计分数</label>
+            <input id="simScore" type="number" min="0" max="100" step="0.1" placeholder="例如：93">
+          </div>
+        </div>
+
+        <div class="sim-result" id="simResult">输入学分和预计分数后，会显示对总 GPA 的影响。</div>
+
+        <div class="scenario-grid" id="scenarioGrid"></div>
+      </section>
+    </section>
+
+    <section class="panel data-panel" aria-labelledby="dataTitle">
+      <div class="panel-heading table-heading">
+        <div>
+          <h2 id="dataTitle">数据管理</h2>
+          <p>支持批量导入课程，也可以完整备份和恢复全部本地数据。</p>
+        </div>
+        <div class="data-actions">
+          <button class="secondary-button" id="importCsvBtn" type="button">导入 CSV</button>
+          <button class="secondary-button" id="exportBackupBtn" type="button">导出备份</button>
+          <button class="secondary-button" id="importBackupBtn" type="button">恢复备份</button>
+        </div>
+      </div>
+
+      <input class="hidden" id="csvFileInput" type="file" accept=".csv,text/csv">
+      <input class="hidden" id="backupFileInput" type="file" accept=".json,application/json">
+
+      <div class="data-help">
+        CSV 支持列名：课程名称/课程、学期、学分、分数。JSON 备份会包含课程、档案、目标院校和 AI 接口配置。
+      </div>
+    </section>
+
     <section class="planning-grid" aria-label="升学规划">
       <form class="panel profile-panel" id="profileForm">
         <div class="panel-heading">
@@ -272,6 +337,16 @@
 
       <div class="ai-status" id="aiStatus">AI 报告会通过 Vercel 后端代理生成，API key 不会进入前端代码。</div>
       <div class="analysis-block hidden" id="aiReport"></div>
+    </section>
+
+    <section class="panel target-compare-panel" aria-labelledby="targetCompareTitle">
+      <div class="panel-heading">
+        <div>
+          <h2 id="targetCompareTitle">目标院校对照表</h2>
+          <p>逐项对比当前条件和你手填的目标门槛。</p>
+        </div>
+      </div>
+      <div class="target-compare-list" id="targetCompareList"></div>
     </section>
 
     <section class="panel table-panel" aria-labelledby="courseListTitle">

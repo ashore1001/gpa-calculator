@@ -107,6 +107,18 @@ const aiStatus = document.querySelector("#aiStatus");
 const aiReport = document.querySelector("#aiReport");
 const aiEndpointInput = document.querySelector("#aiEndpoint");
 const saveEndpointBtn = document.querySelector("#saveEndpointBtn");
+const gpaTrendChart = document.querySelector("#gpaTrendChart");
+const chartEmptyState = document.querySelector("#chartEmptyState");
+const simCreditsInput = document.querySelector("#simCredits");
+const simScoreInput = document.querySelector("#simScore");
+const simResult = document.querySelector("#simResult");
+const scenarioGrid = document.querySelector("#scenarioGrid");
+const importCsvBtn = document.querySelector("#importCsvBtn");
+const exportBackupBtn = document.querySelector("#exportBackupBtn");
+const importBackupBtn = document.querySelector("#importBackupBtn");
+const csvFileInput = document.querySelector("#csvFileInput");
+const backupFileInput = document.querySelector("#backupFileInput");
+const targetCompareList = document.querySelector("#targetCompareList");
 
 courseForm.addEventListener("submit", handleCourseSubmit);
 cancelEditBtn.addEventListener("click", resetForm);
@@ -120,6 +132,13 @@ targetForm.addEventListener("submit", handleTargetSubmit);
 runLocalAnalysisBtn.addEventListener("click", runLocalAnalysis);
 runAiAnalysisBtn.addEventListener("click", runAiAnalysis);
 saveEndpointBtn.addEventListener("click", saveAiEndpoint);
+simCreditsInput.addEventListener("input", updateSimulator);
+simScoreInput.addEventListener("input", updateSimulator);
+importCsvBtn.addEventListener("click", () => csvFileInput.click());
+exportBackupBtn.addEventListener("click", exportBackup);
+importBackupBtn.addEventListener("click", () => backupFileInput.click());
+csvFileInput.addEventListener("change", handleCsvImport);
+backupFileInput.addEventListener("change", handleBackupImport);
 
 populateProfileForm();
 populateAiEndpoint();
@@ -164,6 +183,9 @@ function render() {
   renderCourseTable();
   renderSemesterSummary();
   renderTargets();
+  renderGpaTrendChart();
+  renderTargetComparison();
+  updateSimulator();
   updateGoalResult();
 }
 
@@ -259,6 +281,155 @@ function renderSemesterSummary() {
     `;
     semesterList.appendChild(card);
   });
+}
+
+function renderGpaTrendChart() {
+  const stats = getSemesterProgressStats();
+  const hasData = stats.length > 0;
+  gpaTrendChart.classList.toggle("hidden", !hasData);
+  chartEmptyState.classList.toggle("hidden", hasData);
+
+  if (!hasData) return;
+
+  const context = gpaTrendChart.getContext("2d");
+  const width = gpaTrendChart.width;
+  const height = gpaTrendChart.height;
+  const padding = { top: 24, right: 48, bottom: 58, left: 52 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const maxCredits = Math.max(1, ...stats.map((item) => item.cumulativeCredits));
+  const xStep = stats.length === 1 ? 0 : plotWidth / (stats.length - 1);
+
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+
+  drawGrid(context, width, height, padding, plotWidth, plotHeight);
+
+  const gpaPoint = (value, index) => ({
+    x: padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep),
+    y: padding.top + (1 - clamp(value / 5, 0, 1)) * plotHeight
+  });
+  const creditPoint = (value, index) => ({
+    x: padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep),
+    y: padding.top + (1 - clamp(value / maxCredits, 0, 1)) * plotHeight
+  });
+
+  drawLine(context, stats.map((item, index) => gpaPoint(item.gpa, index)), "#2563eb");
+  drawLine(context, stats.map((item, index) => gpaPoint(item.cumulativeGpa, index)), "#0f766e");
+  drawLine(context, stats.map((item, index) => creditPoint(item.cumulativeCredits, index)), "#9a3412", true);
+
+  context.fillStyle = "#667085";
+  context.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.textAlign = "center";
+  stats.forEach((item, index) => {
+    const x = padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep);
+    context.save();
+    context.translate(x, height - 24);
+    context.rotate(stats.length > 4 ? -0.35 : 0);
+    context.fillText(item.semester.slice(0, 12), 0, 0);
+    context.restore();
+  });
+
+  context.textAlign = "left";
+  context.fillText("GPA", 10, padding.top + 4);
+  context.textAlign = "right";
+  context.fillText("学分", width - 8, padding.top + 4);
+}
+
+function drawGrid(context, width, height, padding, plotWidth, plotHeight) {
+  context.strokeStyle = "#e4e8f0";
+  context.lineWidth = 1;
+  context.fillStyle = "#667085";
+  context.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.textAlign = "right";
+
+  for (let i = 0; i <= 5; i += 1) {
+    const y = padding.top + (i / 5) * plotHeight;
+    const label = (5 - i).toFixed(1);
+    context.beginPath();
+    context.moveTo(padding.left, y);
+    context.lineTo(width - padding.right, y);
+    context.stroke();
+    context.fillText(label, padding.left - 8, y + 4);
+  }
+
+  context.strokeStyle = "#cfd6e2";
+  context.beginPath();
+  context.moveTo(padding.left, padding.top);
+  context.lineTo(padding.left, height - padding.bottom);
+  context.lineTo(width - padding.right, height - padding.bottom);
+  context.stroke();
+}
+
+function drawLine(context, points, color, dashed = false) {
+  if (points.length === 0) return;
+
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 2.5;
+  context.setLineDash(dashed ? [6, 5] : []);
+  context.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) {
+      context.moveTo(point.x, point.y);
+    } else {
+      context.lineTo(point.x, point.y);
+    }
+  });
+  context.stroke();
+  context.setLineDash([]);
+
+  points.forEach((point) => {
+    context.beginPath();
+    context.arc(point.x, point.y, 4, 0, Math.PI * 2);
+    context.fill();
+  });
+}
+
+function updateSimulator() {
+  const credits = Number.parseFloat(simCreditsInput.value);
+  const score = Number.parseFloat(simScoreInput.value);
+  const currentCredits = getTotalCredits(courses);
+  const currentGpa = calculateGpa(courses);
+  const currentPoints = getTotalPoints(courses);
+
+  renderScenarioGrid(credits);
+
+  if (!Number.isFinite(credits) || !Number.isFinite(score)) {
+    simResult.textContent = "输入学分和预计分数后，会显示对总 GPA 的影响。";
+    return;
+  }
+
+  if (credits <= 0 || !isValidScore(score)) {
+    simResult.textContent = "学分需大于 0，分数需在 0 到 100 之间。";
+    return;
+  }
+
+  const projectedGpa = (currentPoints + scoreToPoint(score) * credits) / (currentCredits + credits);
+  const diff = projectedGpa - currentGpa;
+  const trend = diff >= 0 ? "上升" : "下降";
+  simResult.textContent = `这门课绩点 ${formatGpa(scoreToPoint(score))}。加入 ${formatCredits(credits)} 学分后，总 GPA 预计从 ${formatGpa(currentGpa)} ${trend}到 ${formatGpa(projectedGpa)}，变化 ${formatSignedGpa(diff)}。`;
+}
+
+function renderScenarioGrid(credits) {
+  const scenarioCredits = Number.isFinite(credits) && credits > 0 ? credits : 5;
+  const currentCredits = getTotalCredits(courses);
+  const currentPoints = getTotalPoints(courses);
+  const scenarios = [85, 90, 93, 96];
+
+  scenarioGrid.innerHTML = scenarios.map((score) => {
+    const gpa = currentCredits + scenarioCredits > 0
+      ? (currentPoints + scoreToPoint(score) * scenarioCredits) / (currentCredits + scenarioCredits)
+      : scoreToPoint(score);
+    return `
+      <article class="scenario-item">
+        <span>${score} 分</span>
+        <strong>${formatGpa(gpa)}</strong>
+        <small>${formatCredits(scenarioCredits)} 学分后总 GPA</small>
+      </article>
+    `;
+  }).join("");
 }
 
 function updateGoalResult() {
@@ -367,6 +538,161 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function handleCsvImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const importedCourses = parseCoursesCsv(String(reader.result || ""));
+      if (importedCourses.length === 0) {
+        alert("没有识别到可导入的课程。请检查 CSV 列名是否包含课程名称、学期、学分、分数。");
+        return;
+      }
+
+      courses = courses.concat(importedCourses);
+      saveCourses();
+      resetForm();
+      render();
+      alert(`已导入 ${importedCourses.length} 门课程。`);
+    } catch (error) {
+      alert(`CSV 导入失败：${error.message}`);
+    } finally {
+      csvFileInput.value = "";
+    }
+  };
+  reader.readAsText(file, "utf-8");
+}
+
+function parseCoursesCsv(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => normalizeHeader(header));
+  const nameIndex = findHeaderIndex(headers, ["课程名称", "课程", "course", "name"]);
+  const semesterIndex = findHeaderIndex(headers, ["学期", "semester", "term"]);
+  const creditsIndex = findHeaderIndex(headers, ["学分", "credits", "credit"]);
+  const scoreIndex = findHeaderIndex(headers, ["分数", "成绩", "score"]);
+
+  if ([nameIndex, semesterIndex, creditsIndex, scoreIndex].some((index) => index === -1)) {
+    throw new Error("缺少必要列：课程名称、学期、学分、分数。");
+  }
+
+  return rows.slice(1).map((row) => {
+    const name = String(row[nameIndex] || "").trim();
+    const semester = String(row[semesterIndex] || "").trim();
+    const credits = Number.parseFloat(row[creditsIndex]);
+    const score = Number.parseFloat(row[scoreIndex]);
+
+    if (!name && !semester && !row[creditsIndex] && !row[scoreIndex]) return null;
+    if (!name || !semester || !Number.isFinite(credits) || credits <= 0 || !isValidScore(score)) {
+      throw new Error(`课程「${name || "未命名"}」数据不完整或不合法。`);
+    }
+
+    return {
+      id: createId("course"),
+      name,
+      semester,
+      credits,
+      score
+    };
+  }).filter(Boolean);
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+  const normalizedText = text.replace(/^\uFEFF/, "");
+
+  for (let i = 0; i < normalizedText.length; i += 1) {
+    const char = normalizedText[i];
+    const nextChar = normalizedText[i + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      cell += '"';
+      i += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && nextChar === "\n") i += 1;
+      row.push(cell);
+      if (row.some((value) => value.trim() !== "")) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim() !== "")) rows.push(row);
+  return rows;
+}
+
+function exportBackup() {
+  const backup = {
+    app: "gpa-calculator",
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    courses,
+    profile: collectProfileFromForm(),
+    targets,
+    aiEndpoint: aiEndpointInput.value.trim()
+  };
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `gpa-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function handleBackupImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(String(reader.result || ""));
+      const restoredCourses = Array.isArray(backup.courses) ? backup.courses.map(normalizeCourse).filter(Boolean) : [];
+      const restoredProfile = backup.profile && typeof backup.profile === "object" ? backup.profile : {};
+      const restoredTargets = Array.isArray(backup.targets) ? backup.targets.map(normalizeTarget).filter(Boolean) : [];
+      const confirmed = confirm(`将恢复 ${restoredCourses.length} 门课程、${restoredTargets.length} 个目标院校，并覆盖当前档案。确定继续吗？`);
+      if (!confirmed) return;
+
+      courses = restoredCourses;
+      profile = restoredProfile;
+      targets = restoredTargets;
+      localStorage.setItem(AI_ENDPOINT_STORAGE_KEY, typeof backup.aiEndpoint === "string" ? backup.aiEndpoint : "");
+      saveCourses();
+      saveProfile();
+      saveTargets();
+      populateProfileForm();
+      populateAiEndpoint();
+      resetForm();
+      latestLocalAnalysis = null;
+      render();
+      alert("备份已恢复。");
+    } catch (error) {
+      alert(`备份恢复失败：${error.message}`);
+    } finally {
+      backupFileInput.value = "";
+    }
+  };
+  reader.readAsText(file, "utf-8");
+}
+
 function resetForm() {
   courseForm.reset();
   courseIdInput.value = "";
@@ -379,6 +705,7 @@ function handleProfileSubmit(event) {
   event.preventDefault();
   profile = collectProfileFromForm();
   saveProfile();
+  renderTargetComparison();
   alert("档案已保存。");
 }
 
@@ -441,6 +768,7 @@ function handleTargetSubmit(event) {
   saveTargets();
   targetForm.reset();
   renderTargets();
+  renderTargetComparison();
 }
 
 function renderTargets() {
@@ -475,6 +803,155 @@ function renderTargets() {
   });
 }
 
+function renderTargetComparison() {
+  const currentProfile = collectProfileFromForm();
+  const coursesSummary = getCoursesSummary();
+  const currentGpa = Number.isFinite(currentProfile.currentGpa) ? currentProfile.currentGpa : coursesSummary.overallGpa;
+
+  targetCompareList.innerHTML = "";
+
+  if (targets.length === 0) {
+    targetCompareList.innerHTML = '<div class="empty-state">添加目标院校后，这里会逐项对照 GPA、排名、英语和科研要求。</div>';
+    return;
+  }
+
+  targets.forEach((target) => {
+    const checks = buildTargetChecks(target, currentProfile, currentGpa);
+    const item = document.createElement("article");
+    item.className = "target-compare-card";
+    item.innerHTML = `
+      <div class="target-compare-heading">
+        <div>
+          <h3>${escapeHtml(target.school)}</h3>
+          <p>${escapeHtml(target.program || "未填写具体项目")} · ${escapeHtml(target.direction || "未填写方向")}</p>
+        </div>
+        <span class="compare-summary ${getWorstCheckClass(checks)}">${getWorstCheckLabel(checks)}</span>
+      </div>
+      <div class="compare-grid">
+        ${checks.map((check) => `
+          <div class="compare-item ${check.status}">
+            <span>${escapeHtml(check.label)}</span>
+            <strong>${escapeHtml(check.statusLabel)}</strong>
+            <small>${escapeHtml(check.detail)}</small>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    targetCompareList.appendChild(item);
+  });
+}
+
+function buildTargetChecks(target, currentProfile, currentGpa) {
+  const checks = [];
+
+  if (target.minGpa) {
+    const diff = currentGpa - target.minGpa;
+    checks.push({
+      label: "GPA",
+      ...getThresholdStatus(diff, 0.1),
+      detail: `当前 ${formatGpa(currentGpa)} / 门槛 ${formatGpa(target.minGpa)}`
+    });
+  } else {
+    checks.push(createUnknownCheck("GPA", "目标未填写 GPA 门槛"));
+  }
+
+  if (target.minRank) {
+    if (Number.isFinite(currentProfile.rank)) {
+      const diff = target.minRank - currentProfile.rank;
+      checks.push({
+        label: "排名",
+        ...getThresholdStatus(diff, 3),
+        detail: `当前第 ${formatRank(currentProfile.rank)} / 门槛前 ${formatRank(target.minRank)}`
+      });
+    } else {
+      checks.push(createUnknownCheck("排名", "档案未填写专业排名"));
+    }
+  } else {
+    checks.push(createUnknownCheck("排名", "目标未填写排名门槛"));
+  }
+
+  if (target.englishRequirement) {
+    const englishResult = compareEnglishRequirement(target.englishRequirement, currentProfile);
+    checks.push({
+      label: "英语",
+      ...englishResult
+    });
+  } else {
+    checks.push(createUnknownCheck("英语", "目标未填写英语要求"));
+  }
+
+  if (target.researchPreference) {
+    const researchScore = getLevelScore(currentProfile.researchLevel, 10);
+    checks.push({
+      label: "科研",
+      status: researchScore >= 7 ? "ok" : researchScore >= 3.8 ? "near" : "risk",
+      statusLabel: researchScore >= 7 ? "较匹配" : researchScore >= 3.8 ? "接近" : "风险",
+      detail: `当前科研：${levelLabels[currentProfile.researchLevel] || "暂无"}；目标偏好：${target.researchPreference}`
+    });
+  } else {
+    checks.push(createUnknownCheck("科研", "目标未填写科研偏好"));
+  }
+
+  return checks;
+}
+
+function compareEnglishRequirement(requirement, currentProfile) {
+  if (!currentProfile.englishType || !Number.isFinite(currentProfile.englishScore)) {
+    return {
+      status: "unknown",
+      statusLabel: "信息不足",
+      detail: `档案未填写英语成绩；目标要求：${requirement}`
+    };
+  }
+
+  const requiredScore = extractFirstNumber(requirement);
+  if (!Number.isFinite(requiredScore)) {
+    return {
+      status: "unknown",
+      statusLabel: "需人工判断",
+      detail: `当前 ${formatEnglish(currentProfile)}；目标要求：${requirement}`
+    };
+  }
+
+  const diff = currentProfile.englishScore - requiredScore;
+  const status = diff >= 0 ? "ok" : diff >= -20 ? "near" : "risk";
+  return {
+    status,
+    statusLabel: status === "ok" ? "已满足" : status === "near" ? "接近" : "风险",
+    detail: `当前 ${formatEnglish(currentProfile)}；目标要求：${requirement}`
+  };
+}
+
+function getThresholdStatus(diff, nearRange) {
+  if (diff >= 0) return { status: "ok", statusLabel: "已满足" };
+  if (diff >= -nearRange) return { status: "near", statusLabel: "接近" };
+  return { status: "risk", statusLabel: "风险" };
+}
+
+function createUnknownCheck(label, detail) {
+  return {
+    label,
+    status: "unknown",
+    statusLabel: "信息不足",
+    detail
+  };
+}
+
+function getWorstCheckClass(checks) {
+  if (checks.some((check) => check.status === "risk")) return "risk";
+  if (checks.some((check) => check.status === "near")) return "near";
+  if (checks.some((check) => check.status === "unknown")) return "unknown";
+  return "ok";
+}
+
+function getWorstCheckLabel(checks) {
+  const status = getWorstCheckClass(checks);
+  if (status === "risk") return "存在风险";
+  if (status === "near") return "接近门槛";
+  if (status === "unknown") return "信息不足";
+  return "整体满足";
+}
+
 function deleteTarget(id) {
   const target = targets.find((item) => item.id === id);
   if (!target) return;
@@ -485,6 +962,7 @@ function deleteTarget(id) {
   targets = targets.filter((item) => item.id !== id);
   saveTargets();
   renderTargets();
+  renderTargetComparison();
 }
 
 function runLocalAnalysis() {
@@ -768,6 +1246,21 @@ function getSemesterStats() {
   });
 }
 
+function getSemesterProgressStats() {
+  let runningCourses = [];
+  return getSemesters().map((semester) => {
+    const semesterCourses = courses.filter((course) => course.semester === semester);
+    runningCourses = runningCourses.concat(semesterCourses);
+    return {
+      semester,
+      credits: getTotalCredits(semesterCourses),
+      cumulativeCredits: getTotalCredits(runningCourses),
+      gpa: calculateGpa(semesterCourses),
+      cumulativeGpa: calculateGpa(runningCourses)
+    };
+  });
+}
+
 function getSemesters() {
   return Array.from(new Set(courses.map((course) => course.semester)))
     .sort((a, b) => a.localeCompare(b, "zh-CN"));
@@ -1012,6 +1505,30 @@ function parseOptionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeHeader(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function findHeaderIndex(headers, candidates) {
+  return headers.findIndex((header) => candidates.some((candidate) => header === normalizeHeader(candidate)));
+}
+
+function extractFirstNumber(value) {
+  const match = String(value || "").match(/\d+(?:\.\d+)?/);
+  return match ? Number.parseFloat(match[0]) : null;
+}
+
+function formatEnglish(profileData) {
+  const labels = {
+    cet4: "四级",
+    cet6: "六级",
+    ielts: "雅思",
+    toefl: "托福"
+  };
+  if (!profileData.englishType || !Number.isFinite(profileData.englishScore)) return "未填写";
+  return `${labels[profileData.englishType] || profileData.englishType} ${profileData.englishScore}`;
+}
+
 function numberToInputValue(value) {
   return Number.isFinite(value) ? String(value) : "";
 }
@@ -1026,6 +1543,11 @@ function uniqueList(items) {
 
 function formatGpa(value) {
   return Number(value || 0).toFixed(2);
+}
+
+function formatSignedGpa(value) {
+  const number = Number(value || 0);
+  return `${number >= 0 ? "+" : ""}${number.toFixed(2)}`;
 }
 
 function formatCredits(value) {
