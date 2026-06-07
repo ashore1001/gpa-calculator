@@ -1,8 +1,8 @@
 # GPA Calculator
 
-一个简洁、手机端友好的学生 GPA 计算器。项目使用原生 HTML、CSS、JavaScript 开发，不依赖前端框架，也不需要后端服务。课程数据会保存在浏览器 `localStorage` 中，刷新页面后不会丢失。
+一个面向大学生的 GPA 与升学规划工具。项目使用原生 HTML、CSS、JavaScript 开发，课程、学生档案、目标院校和接口配置都保存在浏览器 `localStorage` 中。前端可以继续放在 GitHub Pages，AI 分析通过 Vercel 后端代理调用 OpenAI，API key 不会写入前端代码或 GitHub。
 
-本项目默认采用成绩等级分段换算：
+本项目默认采用学校分段绩点：
 
 | 分数 | 等级 | 绩点 |
 | --- | --- | --- |
@@ -20,55 +20,77 @@
 | 60-62 | D- | 1.0 |
 | <60 | F | 0 |
 
-例如：工科数学分析 5 学分，成绩 95 分，则课程绩点为 4.50，学分绩点贡献为：
-
-```text
-5 × 4.50 = 22.50
-```
+例如：工科数学分析 5 学分，成绩 95 分，课程绩点为 4.50，学分绩点贡献为 `5 * 4.50 = 22.50`。
 
 ## 功能列表
 
 - 添加、编辑、删除课程
 - 记录课程名称、学期、学分、百分制分数，支持 0.25 学分
-- 自动计算总 GPA、总学分、课程数量
-- 自动计算每个学期 GPA
+- 自动计算总 GPA、总学分、课程数量、每学期 GPA
 - 支持按学期筛选课程
 - 支持目标 GPA 计算，估算未来课程需要达到的平均 GPA
-- 使用浏览器本地保存数据
 - 支持导出 CSV
-- 支持清空全部数据，并带确认提示
-- 适配手机和电脑屏幕
+- 支持清空课程数据，并带确认提示
+- 学生档案：学校、专业、年级、GPA、排名、英语、科研、竞赛、项目、奖项、目标方向
+- 目标院校：手填目标学校、项目、方向、排名门槛、GPA 门槛、英语要求、科研偏好
+- 本地规则分析：综合竞争力评分、可能性等级、粗略区间、优势、短板、行动建议
+- AI 分析：通过 Vercel API 生成严师型中文报告
+- 手机和电脑自适应
 
 ## 使用方法
 
-1. 打开 `index.html`。
+1. 打开 `index.html`，或访问 GitHub Pages 公开网站。
 2. 在“添加课程”区域填写课程名称、学期、学分和百分制分数。
-3. 点击“添加课程”，页面会自动更新总 GPA 和学期 GPA。
-4. 如果需要修改课程，点击课程记录右侧的“编辑”。
-5. 如果需要备份数据，点击右上角“导出 CSV”。
-6. 如果需要清空数据，点击右上角“清空数据”，并在确认提示中确认。
+3. 在“学生档案”里填写排名、英语、科研、竞赛、目标方向等信息。
+4. 在“目标院校”里添加你自己已知的目标和门槛。
+5. 点击“生成本地分析”，查看非官方的规划建议。
+6. 如果已配置 Vercel API，填写 `/api/analyze` 接口地址后点击“生成 AI 分析”。
 
-也可以在项目目录中启动一个本地静态服务器：
+本地运行：
 
 ```bash
-python3 -m http.server 8080
+npm start
 ```
 
-然后在浏览器中访问：
+然后访问：
 
 ```text
 http://localhost:8080
 ```
 
-## 发布到 GitHub Pages
-
-本项目已准备好发布脚本。先完成 GitHub CLI 登录：
+代码检查：
 
 ```bash
-gh auth login
+npm run check
 ```
 
-然后运行：
+## AI 后端配置
+
+AI 分析使用 Vercel 后端代理：
+
+```text
+POST /api/analyze
+```
+
+请求内容只包含：
+
+- `profile`
+- `coursesSummary`
+- `targets`
+- `localAnalysis`
+
+Vercel 环境变量：
+
+```text
+OPENAI_API_KEY=你的 OpenAI API key
+OPENAI_MODEL=gpt-5.5
+```
+
+`OPENAI_MODEL` 可不填，默认使用 `gpt-5.5`。不要把 API key 写到 `script.js`、`index.html`、README 或 GitHub。
+
+## 发布到 GitHub Pages
+
+本项目已准备好发布脚本。完成 GitHub CLI 登录后运行：
 
 ```bash
 ./tools/publish-github-pages.sh
@@ -88,11 +110,39 @@ https://ashore1001.github.io/gpa-calculator/
 
 更多配置说明见 `AGENT_SETUP.md`。
 
+## 发布到 Vercel
+
+安装并登录 Vercel CLI：
+
+```bash
+npm i -g vercel
+vercel login
+```
+
+添加环境变量：
+
+```bash
+vercel env add OPENAI_API_KEY production
+```
+
+部署生产环境：
+
+```bash
+vercel --prod
+```
+
+部署完成后，把 Vercel 给出的接口地址填到网页的“AI 接口地址”中，例如：
+
+```text
+https://你的项目.vercel.app/api/analyze
+```
+
 ## 后续可改进方向
 
-- 支持自定义成绩到绩点的映射规则
 - 支持导入 CSV
-- 支持给课程添加备注或课程类别
-- 支持不同学校的 GPA 制度切换
-- 支持图表展示 GPA 趋势
+- 支持自定义成绩到绩点的映射规则
+- 支持 GPA 趋势图和学期雷达图
+- 支持不同学校的政策模板，但必须标注来源和日期
+- 支持目标院校材料清单和截止日期提醒
+- 支持把本地数据导出为 JSON 备份
 - 支持暗色模式

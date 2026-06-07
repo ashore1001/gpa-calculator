@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GPA Calculator | 5.0 绩点计算器</title>
+  <title>GPA Planner | 升学规划工具</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="app-shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">Student GPA Tool</p>
-        <h1>5.0 GPA 计算器</h1>
-        <p class="hero-copy">记录课程、管理多个学期成绩，并自动计算总 GPA 与学期 GPA。</p>
+        <p class="eyebrow">Student Planning Tool</p>
+        <h1>GPA 与升学规划工具</h1>
+        <p class="hero-copy">记录成绩、维护个人档案、手填目标院校门槛，并生成本地规则分析与严师型 AI 解读。</p>
       </div>
       <div class="hero-actions">
         <button class="secondary-button" id="exportCsvBtn" type="button">导出 CSV</button>
-        <button class="danger-button" id="clearAllBtn" type="button">清空数据</button>
+        <button class="danger-button" id="clearAllBtn" type="button">清空课程</button>
       </div>
     </header>
 
@@ -49,7 +49,7 @@
         <input type="hidden" id="courseId">
 
         <label for="courseName">课程名称</label>
-        <input id="courseName" name="courseName" type="text" placeholder="例如：高等数学" required>
+        <input id="courseName" name="courseName" type="text" placeholder="例如：工科数学分析" required>
 
         <label for="semester">学期</label>
         <input id="semester" name="semester" type="text" placeholder="例如：2025 秋 / 大一上" required>
@@ -57,7 +57,7 @@
         <div class="form-row">
           <div>
             <label for="credits">学分</label>
-            <input id="credits" name="credits" type="number" min="0.25" step="0.25" placeholder="3" required>
+            <input id="credits" name="credits" type="number" min="0.25" step="0.25" placeholder="5 或 0.25" required>
           </div>
           <div>
             <label for="score">分数</label>
@@ -66,7 +66,7 @@
         </div>
 
         <button class="primary-button" id="submitBtn" type="submit">添加课程</button>
-        <p class="formula-note">按成绩等级分段换算：96-100 = 4.8，93-95 = 4.5，90-92 = 4.0；低于 60 分按 0 绩点。</p>
+        <p class="formula-note">按学校分段换算：96-100 = 4.8，93-95 = 4.5，90-92 = 4.0；低于 60 分按 0 绩点。</p>
       </form>
 
       <section class="panel goal-panel" aria-labelledby="goalTitle">
@@ -77,17 +77,208 @@
         <input id="targetGpa" type="number" min="0" max="5" step="0.01" placeholder="例如：4.20">
 
         <label for="futureCredits">未来计划修读学分</label>
-        <input id="futureCredits" type="number" min="0.25" step="0.25" placeholder="例如：20">
+        <input id="futureCredits" type="number" min="0.25" step="0.25" placeholder="例如：20 或 0.25">
 
         <div class="goal-result" id="goalResult">输入目标 GPA 和未来学分后，会显示未来需要达到的平均 GPA。</div>
       </section>
+    </section>
+
+    <section class="planning-grid" aria-label="升学规划">
+      <form class="panel profile-panel" id="profileForm">
+        <div class="panel-heading">
+          <div>
+            <h2>学生档案</h2>
+            <p>这些信息只保存在本机浏览器。</p>
+          </div>
+          <button class="secondary-button compact-button" type="submit">保存档案</button>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="profileSchool">学校</label>
+            <input id="profileSchool" type="text" placeholder="例如：某某大学">
+          </div>
+          <div>
+            <label for="profileMajor">学院 / 专业</label>
+            <input id="profileMajor" type="text" placeholder="例如：工科试验班">
+          </div>
+          <div>
+            <label for="profileGrade">年级</label>
+            <input id="profileGrade" type="text" placeholder="例如：2024 级">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="profileCurrentGpa">当前 GPA</label>
+            <input id="profileCurrentGpa" type="number" min="0" max="5" step="0.01" placeholder="可自动使用课程 GPA">
+          </div>
+          <div>
+            <label for="profileRank">专业排名</label>
+            <input id="profileRank" type="number" min="1" step="1" placeholder="例如：8">
+          </div>
+          <div>
+            <label for="profileCohortSize">专业人数</label>
+            <input id="profileCohortSize" type="number" min="1" step="1" placeholder="例如：120">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="englishType">英语类型</label>
+            <select id="englishType">
+              <option value="">暂不填写</option>
+              <option value="cet4">四级</option>
+              <option value="cet6">六级</option>
+              <option value="ielts">雅思</option>
+              <option value="toefl">托福</option>
+            </select>
+          </div>
+          <div>
+            <label for="englishScore">英语分数</label>
+            <input id="englishScore" type="number" min="0" step="0.1" placeholder="例如：六级 520">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="researchLevel">科研基础</label>
+            <select id="researchLevel">
+              <option value="none">暂无</option>
+              <option value="basic">有入门经历</option>
+              <option value="solid">有项目 / 组会经历</option>
+              <option value="strong">论文 / 核心项目突出</option>
+            </select>
+          </div>
+          <div>
+            <label for="competitionLevel">竞赛水平</label>
+            <select id="competitionLevel">
+              <option value="none">暂无</option>
+              <option value="basic">校级 / 参与</option>
+              <option value="solid">省级 / 有奖</option>
+              <option value="strong">国家级 / 高含金量</option>
+            </select>
+          </div>
+          <div>
+            <label for="projectLevel">项目经历</label>
+            <select id="projectLevel">
+              <option value="none">暂无</option>
+              <option value="basic">课程项目</option>
+              <option value="solid">完整项目</option>
+              <option value="strong">可展示成果突出</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="awardsText">奖项 / 亮点概况</label>
+        <textarea id="awardsText" rows="3" placeholder="用几句话写清楚奖项、论文、项目、学生工作或其他亮点。"></textarea>
+
+        <fieldset class="direction-field">
+          <legend>目标方向</legend>
+          <label><input type="checkbox" name="directions" value="本校保研">本校保研</label>
+          <label><input type="checkbox" name="directions" value="外校推免">外校推免</label>
+          <label><input type="checkbox" name="directions" value="考研">考研</label>
+          <label><input type="checkbox" name="directions" value="出国">出国</label>
+          <label><input type="checkbox" name="directions" value="就业">就业</label>
+        </fieldset>
+      </form>
+
+      <section class="panel target-panel" aria-labelledby="targetTitle">
+        <div class="panel-heading">
+          <div>
+            <h2 id="targetTitle">目标院校</h2>
+            <p>只记录你手填的目标和已知门槛，不内置官方概率。</p>
+          </div>
+        </div>
+
+        <form id="targetForm">
+          <label for="targetSchool">目标学校</label>
+          <input id="targetSchool" type="text" placeholder="例如：某某大学" required>
+
+          <label for="targetProgram">学院 / 项目</label>
+          <input id="targetProgram" type="text" placeholder="例如：计算机学院夏令营">
+
+          <label for="targetDirection">目标方向</label>
+          <select id="targetDirection">
+            <option value="外校推免">外校推免</option>
+            <option value="本校保研">本校保研</option>
+            <option value="考研">考研</option>
+            <option value="出国">出国</option>
+            <option value="就业">就业</option>
+          </select>
+
+          <div class="form-row">
+            <div>
+              <label for="targetMinRank">已知最低排名</label>
+              <input id="targetMinRank" type="number" min="1" step="1" placeholder="例如：前 15">
+            </div>
+            <div>
+              <label for="targetMinGpa">已知最低 GPA</label>
+              <input id="targetMinGpa" type="number" min="0" max="5" step="0.01" placeholder="例如：4.10">
+            </div>
+          </div>
+
+          <label for="targetEnglishRequirement">英语要求</label>
+          <input id="targetEnglishRequirement" type="text" placeholder="例如：六级 500+ / 雅思 6.5">
+
+          <label for="targetResearchPreference">科研偏好</label>
+          <input id="targetResearchPreference" type="text" placeholder="例如：偏好科研项目、论文或竞赛">
+
+          <button class="primary-button" type="submit">添加目标院校</button>
+        </form>
+
+        <div class="target-list" id="targetList"></div>
+      </section>
+    </section>
+
+    <section class="panel analysis-panel" aria-labelledby="analysisTitle">
+      <div class="panel-heading analysis-heading">
+        <div>
+          <h2 id="analysisTitle">综合分析</h2>
+          <p>非官方预测，仅用于自我规划；不会替代学校政策、导师判断或招生简章。</p>
+        </div>
+        <div class="analysis-actions">
+          <button class="secondary-button" id="runLocalAnalysisBtn" type="button">生成本地分析</button>
+          <button class="primary-button inline-button" id="runAiAnalysisBtn" type="button">生成 AI 分析</button>
+        </div>
+      </div>
+
+      <div class="api-config">
+        <label for="aiEndpoint">AI 接口地址</label>
+        <div class="inline-field">
+          <input id="aiEndpoint" type="url" placeholder="例如：https://你的-vercel-项目.vercel.app/api/analyze">
+          <button class="secondary-button compact-button" id="saveEndpointBtn" type="button">保存接口</button>
+        </div>
+      </div>
+
+      <div class="analysis-output-grid">
+        <article class="analysis-card">
+          <span>综合竞争力</span>
+          <strong id="competitivenessScore">暂无</strong>
+        </article>
+        <article class="analysis-card">
+          <span>可能性等级</span>
+          <strong id="riskLevel">暂无</strong>
+        </article>
+        <article class="analysis-card">
+          <span>粗略区间</span>
+          <strong id="estimatedRange">暂无</strong>
+        </article>
+      </div>
+
+      <div class="analysis-block" id="localAnalysisResult">
+        填写档案和目标后，点击“生成本地分析”。
+      </div>
+
+      <div class="ai-status" id="aiStatus">AI 报告会通过 Vercel 后端代理生成，API key 不会进入前端代码。</div>
+      <div class="analysis-block hidden" id="aiReport"></div>
     </section>
 
     <section class="panel table-panel" aria-labelledby="courseListTitle">
       <div class="panel-heading table-heading">
         <div>
           <h2 id="courseListTitle">课程记录</h2>
-          <p>数据会自动保存在本机浏览器中。</p>
+          <p>课程、档案、目标院校都会保存在本机浏览器中。</p>
         </div>
         <select id="semesterFilter" aria-label="按学期筛选">
           <option value="all">全部学期</option>

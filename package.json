@@ -1,0 +1,10 @@
+{
+  "name": "gpa-calculator",
+  "version": "2.0.0",
+  "private": true,
+  "description": "GPA calculator and graduate planning tool with a Vercel AI proxy.",
+  "scripts": {
+    "check": "node --check script.js && node --check api/analyze.js",
+    "start": "python3 -m http.server 8080"
+  }
+}
