@@ -148,6 +148,38 @@
       </div>
     </section>
 
+    <section class="panel dashboard-panel" aria-labelledby="dashboardTitle">
+      <div class="panel-heading">
+        <div>
+          <h2 id="dashboardTitle">升学驾驶舱</h2>
+          <p>按不同路径拆开看竞争力，并定位当前最拖后腿的维度。</p>
+        </div>
+      </div>
+
+      <div class="path-score-grid" id="pathScoreGrid"></div>
+
+      <div class="dashboard-grid">
+        <section class="radar-card" aria-labelledby="radarTitle">
+          <div class="subsection-heading">
+            <h3 id="radarTitle">短板雷达</h3>
+            <p>分数越低，越需要优先补。</p>
+          </div>
+          <div class="radar-wrap">
+            <canvas id="weaknessRadar" width="360" height="300" aria-label="短板雷达图"></canvas>
+          </div>
+          <div class="radar-list" id="radarList"></div>
+        </section>
+
+        <section class="timeline-card" aria-labelledby="timelineTitle">
+          <div class="subsection-heading">
+            <h3 id="timelineTitle">升学时间线</h3>
+            <p>按年级给出当前阶段最该做的事。</p>
+          </div>
+          <div class="timeline-list" id="timelineList"></div>
+        </section>
+      </div>
+    </section>
+
     <section class="planning-grid" aria-label="升学规划">
       <form class="panel profile-panel" id="profileForm">
         <div class="panel-heading">

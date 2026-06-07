@@ -119,6 +119,10 @@ const importBackupBtn = document.querySelector("#importBackupBtn");
 const csvFileInput = document.querySelector("#csvFileInput");
 const backupFileInput = document.querySelector("#backupFileInput");
 const targetCompareList = document.querySelector("#targetCompareList");
+const pathScoreGrid = document.querySelector("#pathScoreGrid");
+const weaknessRadar = document.querySelector("#weaknessRadar");
+const radarList = document.querySelector("#radarList");
+const timelineList = document.querySelector("#timelineList");
 
 courseForm.addEventListener("submit", handleCourseSubmit);
 cancelEditBtn.addEventListener("click", resetForm);
@@ -128,6 +132,8 @@ futureCreditsInput.addEventListener("input", updateGoalResult);
 exportCsvBtn.addEventListener("click", exportCsv);
 clearAllBtn.addEventListener("click", clearAllCourses);
 profileForm.addEventListener("submit", handleProfileSubmit);
+profileForm.addEventListener("input", updatePlanningViews);
+profileForm.addEventListener("change", updatePlanningViews);
 targetForm.addEventListener("submit", handleTargetSubmit);
 runLocalAnalysisBtn.addEventListener("click", runLocalAnalysis);
 runAiAnalysisBtn.addEventListener("click", runAiAnalysis);
@@ -185,6 +191,7 @@ function render() {
   renderTargets();
   renderGpaTrendChart();
   renderTargetComparison();
+  renderPlanningDashboard();
   updateSimulator();
   updateGoalResult();
 }
@@ -705,8 +712,13 @@ function handleProfileSubmit(event) {
   event.preventDefault();
   profile = collectProfileFromForm();
   saveProfile();
-  renderTargetComparison();
+  updatePlanningViews();
   alert("档案已保存。");
+}
+
+function updatePlanningViews() {
+  renderTargetComparison();
+  renderPlanningDashboard();
 }
 
 function collectProfileFromForm() {
@@ -768,7 +780,7 @@ function handleTargetSubmit(event) {
   saveTargets();
   targetForm.reset();
   renderTargets();
-  renderTargetComparison();
+  updatePlanningViews();
 }
 
 function renderTargets() {
@@ -839,6 +851,278 @@ function renderTargetComparison() {
     `;
     targetCompareList.appendChild(item);
   });
+}
+
+function renderPlanningDashboard() {
+  const currentProfile = collectProfileFromForm();
+  const coursesSummary = getCoursesSummary();
+  const dimensions = getPlanningDimensions(currentProfile, coursesSummary);
+  const pathScores = buildPathScores(dimensions, currentProfile, targets);
+
+  renderPathScores(pathScores);
+  renderWeaknessRadar(dimensions);
+  renderRadarList(dimensions);
+  renderTimeline(currentProfile, dimensions, pathScores);
+}
+
+function renderPathScores(pathScores) {
+  pathScoreGrid.innerHTML = pathScores.map((path) => `
+    <article class="path-score-card ${path.status}">
+      <div class="path-score-topline">
+        <span>${escapeHtml(path.name)}</span>
+        <strong>${path.score}/100</strong>
+      </div>
+      <div class="score-bar" aria-hidden="true">
+        <i style="width: ${path.score}%"></i>
+      </div>
+      <p>${escapeHtml(path.summary)}</p>
+      <small>${escapeHtml(path.focus)}</small>
+    </article>
+  `).join("");
+}
+
+function renderWeaknessRadar(dimensions) {
+  const context = weaknessRadar.getContext("2d");
+  const width = weaknessRadar.width;
+  const height = weaknessRadar.height;
+  const centerX = width / 2;
+  const centerY = height / 2 + 4;
+  const maxRadius = Math.min(width, height) * 0.34;
+  const labels = dimensions.map((item) => item.label);
+  const angleStep = (Math.PI * 2) / dimensions.length;
+
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+
+  context.strokeStyle = "#e4e8f0";
+  context.fillStyle = "#667085";
+  context.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.textAlign = "center";
+
+  for (let ring = 1; ring <= 4; ring += 1) {
+    const radius = (maxRadius / 4) * ring;
+    context.beginPath();
+    labels.forEach((_, index) => {
+      const angle = -Math.PI / 2 + angleStep * index;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      if (index === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    });
+    context.closePath();
+    context.stroke();
+  }
+
+  dimensions.forEach((item, index) => {
+    const angle = -Math.PI / 2 + angleStep * index;
+    const axisX = centerX + Math.cos(angle) * maxRadius;
+    const axisY = centerY + Math.sin(angle) * maxRadius;
+    const labelX = centerX + Math.cos(angle) * (maxRadius + 28);
+    const labelY = centerY + Math.sin(angle) * (maxRadius + 24);
+    context.beginPath();
+    context.moveTo(centerX, centerY);
+    context.lineTo(axisX, axisY);
+    context.stroke();
+    context.fillText(item.label, labelX, labelY);
+  });
+
+  context.beginPath();
+  dimensions.forEach((item, index) => {
+    const angle = -Math.PI / 2 + angleStep * index;
+    const radius = maxRadius * clamp(item.score / 100, 0, 1);
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+  });
+  context.closePath();
+  context.fillStyle = "rgba(37, 99, 235, 0.18)";
+  context.strokeStyle = "#2563eb";
+  context.lineWidth = 2;
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = "#2563eb";
+  dimensions.forEach((item, index) => {
+    const angle = -Math.PI / 2 + angleStep * index;
+    const radius = maxRadius * clamp(item.score / 100, 0, 1);
+    context.beginPath();
+    context.arc(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius, 4, 0, Math.PI * 2);
+    context.fill();
+  });
+}
+
+function renderRadarList(dimensions) {
+  const sorted = dimensions.slice().sort((a, b) => a.score - b.score);
+  radarList.innerHTML = sorted.map((item) => `
+    <article class="radar-list-item ${item.status}">
+      <div>
+        <strong>${escapeHtml(item.label)}</strong>
+        <span>${escapeHtml(item.reason)}</span>
+      </div>
+      <b>${item.score}</b>
+    </article>
+  `).join("");
+}
+
+function renderTimeline(currentProfile, dimensions, pathScores) {
+  const stage = inferGradeStage(currentProfile.grade);
+  const lowestDimensions = dimensions.slice().sort((a, b) => a.score - b.score).slice(0, 2);
+  const topPath = pathScores.slice().sort((a, b) => b.score - a.score)[0];
+  const timeline = buildTimelineItems(stage, lowestDimensions, topPath);
+
+  timelineList.innerHTML = timeline.map((item) => `
+    <article class="timeline-item ${item.active ? "active" : ""}">
+      <span>${escapeHtml(item.stage)}</span>
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.detail)}</p>
+      </div>
+    </article>
+  `).join("");
+}
+
+function getPlanningDimensions(profileData, coursesSummary) {
+  const gpa = Number.isFinite(profileData.currentGpa) ? profileData.currentGpa : coursesSummary.overallGpa;
+  const rankPercent = getRankPercent(profileData);
+  const english = getEnglishScore(profileData.englishType, profileData.englishScore);
+  const research = getLevelScore(profileData.researchLevel, 10);
+  const competition = getLevelScore(profileData.competitionLevel, 10);
+  const project = getLevelScore(profileData.projectLevel, 10);
+  const materialScore = getMaterialScore(profileData, targets);
+
+  return [
+    {
+      key: "gpa",
+      label: "GPA",
+      score: Math.round(clamp((gpa / 4.8) * 100, 0, 100)),
+      reason: gpa > 0 ? `当前 GPA ${formatGpa(gpa)}` : "缺少课程或 GPA 数据"
+    },
+    {
+      key: "rank",
+      label: "排名",
+      score: rankPercent === null ? 35 : Math.round(clamp((1 - rankPercent / 0.35) * 100, 0, 100)),
+      reason: rankPercent === null ? "未填写专业排名和人数" : `约前 ${formatPercent(rankPercent)}`
+    },
+    {
+      key: "english",
+      label: "英语",
+      score: Math.round(clamp((english.points / 15) * 100, 0, 100)),
+      reason: english.message
+    },
+    {
+      key: "research",
+      label: "科研",
+      score: Math.round(research * 10),
+      reason: `科研基础：${levelLabels[profileData.researchLevel] || "暂无"}`
+    },
+    {
+      key: "project",
+      label: "项目竞赛",
+      score: Math.round(((competition + project) / 20) * 100),
+      reason: `竞赛 ${levelLabels[profileData.competitionLevel] || "暂无"}，项目 ${levelLabels[profileData.projectLevel] || "暂无"}`
+    },
+    {
+      key: "materials",
+      label: "材料",
+      score: materialScore,
+      reason: getMaterialReason(profileData, targets)
+    }
+  ].map((item) => ({
+    ...item,
+    status: item.score >= 75 ? "ok" : item.score >= 50 ? "near" : "risk"
+  }));
+}
+
+function buildPathScores(dimensions, profileData, targetListData) {
+  const dimensionMap = Object.fromEntries(dimensions.map((item) => [item.key, item.score]));
+  const targetBonus = targetListData.length > 0 ? 5 : 0;
+  const directionBonus = Array.isArray(profileData.directions) && profileData.directions.length > 0 ? 3 : 0;
+  const configs = [
+    {
+      name: "本校保研",
+      weights: { gpa: 0.35, rank: 0.35, english: 0.08, research: 0.08, project: 0.06, materials: 0.08 },
+      focus: "优先确认学院名额、排名口径和核心课表现。"
+    },
+    {
+      name: "外校推免",
+      weights: { gpa: 0.25, rank: 0.25, english: 0.15, research: 0.18, project: 0.07, materials: 0.1 },
+      focus: "排名、英语和科研材料会直接影响夏令营/预推免上限。"
+    },
+    {
+      name: "考研",
+      weights: { gpa: 0.18, rank: 0.08, english: 0.18, research: 0.04, project: 0.12, materials: 0.4 },
+      focus: "尽快把目标院校、考试科目和复习计划拆成周任务。"
+    },
+    {
+      name: "出国",
+      weights: { gpa: 0.28, rank: 0.08, english: 0.28, research: 0.18, project: 0.08, materials: 0.1 },
+      focus: "GPA、语言成绩、科研/推荐信和申请时间线要同时推进。"
+    },
+    {
+      name: "就业",
+      weights: { gpa: 0.12, rank: 0.04, english: 0.08, research: 0.08, project: 0.42, materials: 0.26 },
+      focus: "项目、实习、作品集和简历表达比单纯 GPA 更关键。"
+    }
+  ];
+
+  return configs.map((config) => {
+    const weighted = Object.entries(config.weights).reduce((sum, [key, weight]) => {
+      return sum + (dimensionMap[key] || 0) * weight;
+    }, 0);
+    const score = Math.round(clamp(weighted + targetBonus + directionBonus, 0, 100));
+    return {
+      ...config,
+      score,
+      status: score >= 75 ? "ok" : score >= 55 ? "near" : "risk",
+      summary: getPathSummary(score)
+    };
+  });
+}
+
+function buildTimelineItems(stage, lowestDimensions, topPath) {
+  const weakText = lowestDimensions.map((item) => item.label).join("、") || "基础信息";
+  const bestPath = topPath ? topPath.name : "主目标";
+  const items = [
+    {
+      stage: "大一",
+      title: "稳住 GPA 和学习节奏",
+      detail: "先把高学分课程、英语基础和学习方法打稳，别过早被低质量活动分散。",
+      active: stage === "大一"
+    },
+    {
+      stage: "大二",
+      title: "补英语，找科研或项目主线",
+      detail: "开始积累能写进简历的经历，至少形成一条持续 3-6 个月的项目线。",
+      active: stage === "大二"
+    },
+    {
+      stage: "大三",
+      title: "对齐目标门槛并准备材料",
+      detail: `围绕 ${bestPath} 做取舍，优先补 ${weakText}，同步准备简历、证明和推荐人。`,
+      active: stage === "大三"
+    },
+    {
+      stage: "大四",
+      title: "收口申请、考试或就业动作",
+      detail: "不要再泛泛规划，按截止日期推进报名、联系、材料提交和备选方案。",
+      active: stage === "大四"
+    },
+    {
+      stage: "当前",
+      title: "下一步硬任务",
+      detail: `先补最弱的 ${weakText}，并把目标拆成未来 7 天可完成的 2-3 件事。`,
+      active: true
+    }
+  ];
+  return items;
+}
+
+function getPathSummary(score) {
+  if (score >= 75) return "基础较强，可以进入精细化冲刺。";
+  if (score >= 55) return "具备基础，但短板会限制上限。";
+  return "风险偏高，需要先补底盘再谈冲刺。";
 }
 
 function buildTargetChecks(target, currentProfile, currentGpa) {
@@ -962,7 +1246,7 @@ function deleteTarget(id) {
   targets = targets.filter((item) => item.id !== id);
   saveTargets();
   renderTargets();
-  renderTargetComparison();
+  updatePlanningViews();
 }
 
 function runLocalAnalysis() {
@@ -1325,6 +1609,45 @@ function getEnglishScore(type, score) {
   }
 
   return { points: 4, message: "英语信息无法识别，需要补充可比较的分数。" };
+}
+
+function getRankPercent(profileData) {
+  if (!(Number.isFinite(profileData.rank)
+    && Number.isFinite(profileData.cohortSize)
+    && profileData.rank > 0
+    && profileData.cohortSize > 0
+    && profileData.rank <= profileData.cohortSize)) {
+    return null;
+  }
+  return profileData.rank / profileData.cohortSize;
+}
+
+function getMaterialScore(profileData, targetListData) {
+  let score = 15;
+  if (profileData.awardsText) score += 25;
+  if (Array.isArray(profileData.directions) && profileData.directions.length > 0) score += 20;
+  if (targetListData.length > 0) score += 25;
+  if (targetListData.some((target) => target.minGpa || target.minRank || target.englishRequirement || target.researchPreference)) {
+    score += 15;
+  }
+  return Math.round(clamp(score, 0, 100));
+}
+
+function getMaterialReason(profileData, targetListData) {
+  const parts = [];
+  parts.push(profileData.awardsText ? "已有亮点概况" : "未写奖项/亮点");
+  parts.push(Array.isArray(profileData.directions) && profileData.directions.length > 0 ? "已选目标方向" : "未选目标方向");
+  parts.push(targetListData.length > 0 ? `已记录 ${targetListData.length} 个目标` : "未添加目标院校");
+  return parts.join("，");
+}
+
+function inferGradeStage(gradeText) {
+  const text = String(gradeText || "");
+  if (/大一|一年级|1年级|2026|2025/.test(text)) return "大一";
+  if (/大二|二年级|2年级|2024/.test(text)) return "大二";
+  if (/大三|三年级|3年级|2023/.test(text)) return "大三";
+  if (/大四|四年级|4年级|2022/.test(text)) return "大四";
+  return "当前";
 }
 
 function getLevelScore(level, maxScore) {

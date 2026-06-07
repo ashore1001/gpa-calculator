@@ -35,6 +35,9 @@
 - 支持清空课程数据，并带确认提示
 - GPA 趋势图：学期 GPA、累计 GPA、累计学分
 - 成绩影响模拟器：估算未来课程对总 GPA 的影响
+- 升学驾驶舱：本校保研、外校推免、考研、出国、就业多路径评分
+- 短板雷达：GPA、排名、英语、科研、项目竞赛、材料准备
+- 升学时间线：按年级给出阶段重点和下一步硬任务
 - 学生档案：学校、专业、年级、GPA、排名、英语、科研、竞赛、项目、奖项、目标方向
 - 目标院校：手填目标学校、项目、方向、排名门槛、GPA 门槛、英语要求、科研偏好
 - 目标院校对照表：逐项对比 GPA、排名、英语和科研要求
@@ -51,7 +54,8 @@
 5. 点击“生成本地分析”，查看非官方的规划建议。
 6. 在“成绩影响模拟器”里输入未来课程学分和预计分数，查看总 GPA 变化。
 7. 在“数据管理”里导入 CSV，或导出/恢复完整 JSON 备份。
-8. 如果已配置 Vercel API，填写 `/api/analyze` 接口地址后点击“生成 AI 分析”。
+8. 查看“升学驾驶舱”，对比不同路径的竞争力和短板。
+9. 如果已配置 Vercel API，填写 `/api/analyze` 接口地址后点击“生成 AI 分析”。
 
 CSV 导入支持以下列名：
 
@@ -94,14 +98,23 @@ POST /api/analyze
 - `targets`
 - `localAnalysis`
 
-Vercel 环境变量：
+默认使用 OpenAI：
 
 ```text
+AI_PROVIDER=openai
 OPENAI_API_KEY=你的 OpenAI API key
 OPENAI_MODEL=gpt-5.5
 ```
 
-`OPENAI_MODEL` 可不填，默认使用 `gpt-5.5`。不要把 API key 写到 `script.js`、`index.html`、README 或 GitHub。
+也可以使用 DeepSeek：
+
+```text
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=你的 DeepSeek API key
+DEEPSEEK_MODEL=deepseek-v4-flash
+```
+
+`AI_PROVIDER` 可填 `openai` 或 `deepseek`。`OPENAI_MODEL` 可不填，默认使用 `gpt-5.5`；`DEEPSEEK_MODEL` 可不填，默认使用 `deepseek-v4-flash`。不要把任何 API key 写到 `script.js`、`index.html`、README 或 GitHub。
 
 ## 发布到 GitHub Pages
 
@@ -134,10 +147,18 @@ npm i -g vercel
 vercel login
 ```
 
-添加环境变量：
+使用 OpenAI 时添加环境变量：
 
 ```bash
+vercel env add AI_PROVIDER production
 vercel env add OPENAI_API_KEY production
+```
+
+使用 DeepSeek 时添加环境变量：
+
+```bash
+vercel env add AI_PROVIDER production
+vercel env add DEEPSEEK_API_KEY production
 ```
 
 部署生产环境：

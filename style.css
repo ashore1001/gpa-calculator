@@ -403,10 +403,210 @@ textarea:focus {
 }
 
 .analysis-panel,
+.dashboard-panel,
 .data-panel,
 .target-compare-panel,
 .table-panel {
   margin-bottom: 18px;
+}
+
+.path-score-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.path-score-card {
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfe;
+}
+
+.path-score-card.ok {
+  border-color: #a7f3d0;
+}
+
+.path-score-card.near {
+  border-color: #fed7aa;
+}
+
+.path-score-card.risk {
+  border-color: #fecaca;
+}
+
+.path-score-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.path-score-topline span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.path-score-topline strong {
+  font-size: 1.35rem;
+}
+
+.score-bar {
+  height: 7px;
+  margin: 10px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef1f5;
+}
+
+.score-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+}
+
+.path-score-card p {
+  margin-bottom: 8px;
+  color: #344054;
+  font-size: 0.9rem;
+}
+
+.path-score-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  gap: 14px;
+}
+
+.radar-card,
+.timeline-card {
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fbfcfe;
+}
+
+.subsection-heading {
+  margin-bottom: 12px;
+}
+
+.subsection-heading h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.subsection-heading p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.radar-wrap {
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.radar-wrap canvas {
+  display: block;
+  max-width: 100%;
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.radar-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.radar-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.radar-list-item strong,
+.radar-list-item span {
+  display: block;
+}
+
+.radar-list-item span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.radar-list-item b {
+  font-size: 1.1rem;
+}
+
+.radar-list-item.ok b {
+  color: var(--success);
+}
+
+.radar-list-item.near b {
+  color: var(--warning);
+}
+
+.radar-list-item.risk b {
+  color: var(--danger);
+}
+
+.timeline-list {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 66px 1fr;
+  gap: 12px;
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.timeline-item > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.timeline-item.active {
+  border-color: #bfdbfe;
+  background: var(--soft-blue);
+}
+
+.timeline-item strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.timeline-item p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .chart-wrap {
@@ -773,6 +973,11 @@ td {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-grid,
+  .path-score-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -816,6 +1021,11 @@ td {
     flex-direction: column;
   }
 
+  .dashboard-grid,
+  .path-score-grid {
+    grid-template-columns: 1fr;
+  }
+
   .analysis-actions {
     width: 100%;
   }
@@ -835,7 +1045,9 @@ td {
   .hero,
   .panel,
   .metric-card,
-  .analysis-card {
+  .analysis-card,
+  .radar-card,
+  .timeline-card {
     border-left: 0;
     border-right: 0;
     border-radius: 0;
@@ -867,10 +1079,15 @@ td {
   }
 
   .analysis-panel,
+  .dashboard-panel,
   .data-panel,
   .target-compare-panel,
   .table-panel {
     margin-bottom: 0;
+  }
+
+  .timeline-item {
+    grid-template-columns: 1fr;
   }
 
   .hero-actions {
