@@ -2,6 +2,7 @@ const STORAGE_KEY = "gpa-calculator-courses-v1";
 const PROFILE_STORAGE_KEY = "gpa-calculator-profile-v1";
 const TARGETS_STORAGE_KEY = "gpa-calculator-targets-v1";
 const AI_ENDPOINT_STORAGE_KEY = "gpa-calculator-ai-endpoint-v1";
+const DEFAULT_REMOTE_AI_ENDPOINT = "https://gpa-calculator-ashore1.vercel.app/api/analyze";
 
 const scoreBands = [
   { min: 96, max: 100, point: 4.8, grade: "A+" },
@@ -729,6 +730,9 @@ function getDefaultAiEndpoint() {
   const hostname = window.location.hostname;
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".vercel.app")) {
     return "/api/analyze";
+  }
+  if (hostname === "ashore1001.github.io") {
+    return DEFAULT_REMOTE_AI_ENDPOINT;
   }
   return "";
 }
