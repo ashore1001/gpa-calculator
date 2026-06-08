@@ -173,6 +173,25 @@ vercel --prod
 https://你的项目.vercel.app/api/analyze
 ```
 
+现在本项目线上接口是：
+
+```text
+https://gpa-calculator-ashore1.vercel.app/api/analyze
+```
+
+直接在浏览器打开这个地址只会看到接口说明。真正生成 AI 报告时，需要回到 GPA 网站点击“生成 AI 分析”，网页会自动用 POST 请求把你的档案、课程摘要、目标院校和本地分析结果发给这个接口。
+
+接入 DeepSeek 的最短步骤：
+
+1. 在 DeepSeek 平台创建 API key。
+2. 打开 Vercel 项目的 Environment Variables。
+3. 添加 `AI_PROVIDER=deepseek`。
+4. 添加 `DEEPSEEK_API_KEY=你的 key`。
+5. 重新部署 Vercel 生产环境。
+6. 回到 GPA 网站点击“生成 AI 分析”。
+
+接入 OpenAI 时，把 `AI_PROVIDER` 改为 `openai`，并添加 `OPENAI_API_KEY` 即可。API key 只放在 Vercel 环境变量里，不要写进前端代码、README 或 GitHub。
+
 ## 后续可改进方向
 
 - 支持导入 CSV

@@ -19,8 +19,20 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  if (req.method === "GET") {
+    sendJson(res, 200, {
+      status: "ok",
+      message: "这是 GPA 规划工具的 AI 分析接口，不是普通网页。请在 GPA 网站里点击“生成 AI 分析”，前端会用 POST 请求调用这里。",
+      website: "https://ashore1001.github.io/gpa-calculator/",
+      method: "POST /api/analyze",
+      provider: getProviderLabel(getAiProvider()),
+      requiredEnvironmentVariable: getProviderKeyName(getAiProvider())
+    });
+    return;
+  }
+
   if (req.method !== "POST") {
-    sendJson(res, 405, { error: "Only POST /api/analyze is supported." });
+    sendJson(res, 405, { error: "Only GET help and POST /api/analyze are supported." });
     return;
   }
 
@@ -64,7 +76,7 @@ function setCorsHeaders(req, res) {
 
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 

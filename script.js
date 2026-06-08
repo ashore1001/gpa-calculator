@@ -145,6 +145,10 @@ exportBackupBtn.addEventListener("click", exportBackup);
 importBackupBtn.addEventListener("click", () => backupFileInput.click());
 csvFileInput.addEventListener("change", handleCsvImport);
 backupFileInput.addEventListener("change", handleBackupImport);
+window.addEventListener("resize", debounce(() => {
+  renderGpaTrendChart();
+  renderPlanningDashboard();
+}, 160));
 
 populateProfileForm();
 populateAiEndpoint();
@@ -298,10 +302,8 @@ function renderGpaTrendChart() {
 
   if (!hasData) return;
 
-  const context = gpaTrendChart.getContext("2d");
-  const width = gpaTrendChart.width;
-  const height = gpaTrendChart.height;
-  const padding = { top: 24, right: 48, bottom: 58, left: 52 };
+  const { context, width, height } = prepareCanvas(gpaTrendChart, 720, 340);
+  const padding = { top: 34, right: 62, bottom: 76, left: 64 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const maxCredits = Math.max(1, ...stats.map((item) => item.cumulativeCredits));
@@ -326,30 +328,35 @@ function renderGpaTrendChart() {
   drawLine(context, stats.map((item, index) => gpaPoint(item.cumulativeGpa, index)), "#0f766e");
   drawLine(context, stats.map((item, index) => creditPoint(item.cumulativeCredits, index)), "#9a3412", true);
 
-  context.fillStyle = "#667085";
-  context.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.fillStyle = "#475467";
+  context.font = "600 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   context.textAlign = "center";
+  context.textBaseline = "top";
   stats.forEach((item, index) => {
     const x = padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep);
+    const label = formatSemesterLabel(item.semester, stats.length);
     context.save();
-    context.translate(x, height - 24);
-    context.rotate(stats.length > 4 ? -0.35 : 0);
-    context.fillText(item.semester.slice(0, 12), 0, 0);
+    context.translate(x, height - 42);
+    context.rotate(stats.length > 4 ? -0.45 : 0);
+    context.fillText(label, 0, 0);
     context.restore();
   });
 
   context.textAlign = "left";
-  context.fillText("GPA", 10, padding.top + 4);
+  context.textBaseline = "alphabetic";
+  context.font = "700 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.fillText("GPA", 14, padding.top - 10);
   context.textAlign = "right";
-  context.fillText("学分", width - 8, padding.top + 4);
+  context.fillText("累计学分", width - 12, padding.top - 10);
 }
 
 function drawGrid(context, width, height, padding, plotWidth, plotHeight) {
   context.strokeStyle = "#e4e8f0";
   context.lineWidth = 1;
-  context.fillStyle = "#667085";
-  context.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.fillStyle = "#475467";
+  context.font = "600 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   context.textAlign = "right";
+  context.textBaseline = "middle";
 
   for (let i = 0; i <= 5; i += 1) {
     const y = padding.top + (i / 5) * plotHeight;
@@ -374,8 +381,10 @@ function drawLine(context, points, color, dashed = false) {
 
   context.strokeStyle = color;
   context.fillStyle = color;
-  context.lineWidth = 2.5;
-  context.setLineDash(dashed ? [6, 5] : []);
+  context.lineWidth = 3;
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  context.setLineDash(dashed ? [8, 6] : []);
   context.beginPath();
   points.forEach((point, index) => {
     if (index === 0) {
@@ -389,7 +398,7 @@ function drawLine(context, points, color, dashed = false) {
 
   points.forEach((point) => {
     context.beginPath();
-    context.arc(point.x, point.y, 4, 0, Math.PI * 2);
+    context.arc(point.x, point.y, 4.5, 0, Math.PI * 2);
     context.fill();
   });
 }
@@ -882,12 +891,10 @@ function renderPathScores(pathScores) {
 }
 
 function renderWeaknessRadar(dimensions) {
-  const context = weaknessRadar.getContext("2d");
-  const width = weaknessRadar.width;
-  const height = weaknessRadar.height;
+  const { context, width, height } = prepareCanvas(weaknessRadar, 420, 340);
   const centerX = width / 2;
-  const centerY = height / 2 + 4;
-  const maxRadius = Math.min(width, height) * 0.34;
+  const centerY = height / 2 + 6;
+  const maxRadius = Math.min(width, height) * 0.29;
   const labels = dimensions.map((item) => item.label);
   const angleStep = (Math.PI * 2) / dimensions.length;
 
@@ -896,9 +903,10 @@ function renderWeaknessRadar(dimensions) {
   context.fillRect(0, 0, width, height);
 
   context.strokeStyle = "#e4e8f0";
-  context.fillStyle = "#667085";
-  context.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  context.fillStyle = "#475467";
+  context.font = "700 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   context.textAlign = "center";
+  context.textBaseline = "middle";
 
   for (let ring = 1; ring <= 4; ring += 1) {
     const radius = (maxRadius / 4) * ring;
@@ -918,13 +926,13 @@ function renderWeaknessRadar(dimensions) {
     const angle = -Math.PI / 2 + angleStep * index;
     const axisX = centerX + Math.cos(angle) * maxRadius;
     const axisY = centerY + Math.sin(angle) * maxRadius;
-    const labelX = centerX + Math.cos(angle) * (maxRadius + 28);
-    const labelY = centerY + Math.sin(angle) * (maxRadius + 24);
+    const labelX = centerX + Math.cos(angle) * (maxRadius + 48);
+    const labelY = centerY + Math.sin(angle) * (maxRadius + 38);
     context.beginPath();
     context.moveTo(centerX, centerY);
     context.lineTo(axisX, axisY);
     context.stroke();
-    context.fillText(item.label, labelX, labelY);
+    drawRadarLabel(context, item.label, labelX, labelY);
   });
 
   context.beginPath();
@@ -939,7 +947,8 @@ function renderWeaknessRadar(dimensions) {
   context.closePath();
   context.fillStyle = "rgba(37, 99, 235, 0.18)";
   context.strokeStyle = "#2563eb";
-  context.lineWidth = 2;
+  context.lineWidth = 3;
+  context.lineJoin = "round";
   context.fill();
   context.stroke();
 
@@ -948,7 +957,7 @@ function renderWeaknessRadar(dimensions) {
     const angle = -Math.PI / 2 + angleStep * index;
     const radius = maxRadius * clamp(item.score / 100, 0, 1);
     context.beginPath();
-    context.arc(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius, 4, 0, Math.PI * 2);
+    context.arc(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius, 4.5, 0, Math.PI * 2);
     context.fill();
   });
 }
@@ -1858,6 +1867,51 @@ function numberToInputValue(value) {
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function prepareCanvas(canvas, fallbackWidth, fallbackHeight) {
+  const rect = canvas.getBoundingClientRect();
+  const logicalWidth = Math.max(320, Math.round(rect.width || fallbackWidth));
+  const logicalHeight = Math.max(260, Math.round(rect.height || fallbackHeight));
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.round(logicalWidth * ratio);
+  const pixelHeight = Math.round(logicalHeight * ratio);
+
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+
+  const context = canvas.getContext("2d");
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  return { context, width: logicalWidth, height: logicalHeight };
+}
+
+function formatSemesterLabel(label, itemCount) {
+  const text = String(label || "");
+  const limit = itemCount > 6 ? 8 : 12;
+  return text.length > limit ? `${text.slice(0, limit)}...` : text;
+}
+
+function drawRadarLabel(context, label, x, y) {
+  const text = String(label || "");
+  if (text.length <= 4) {
+    context.fillText(text, x, y);
+    return;
+  }
+
+  const midpoint = Math.ceil(text.length / 2);
+  context.fillText(text.slice(0, midpoint), x, y - 8);
+  context.fillText(text.slice(midpoint), x, y + 9);
+}
+
+function debounce(callback, delay) {
+  let timer = null;
+  return (...args) => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => callback(...args), delay);
+  };
 }
 
 function uniqueList(items) {
