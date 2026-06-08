@@ -80,8 +80,10 @@ const profileGradeInput = document.querySelector("#profileGrade");
 const profileCurrentGpaInput = document.querySelector("#profileCurrentGpa");
 const profileRankInput = document.querySelector("#profileRank");
 const profileCohortSizeInput = document.querySelector("#profileCohortSize");
-const englishTypeInput = document.querySelector("#englishType");
-const englishScoreInput = document.querySelector("#englishScore");
+const cet4ScoreInput = document.querySelector("#cet4Score");
+const cet6ScoreInput = document.querySelector("#cet6Score");
+const ieltsScoreInput = document.querySelector("#ieltsScore");
+const toeflScoreInput = document.querySelector("#toeflScore");
 const researchLevelInput = document.querySelector("#researchLevel");
 const competitionLevelInput = document.querySelector("#competitionLevel");
 const projectLevelInput = document.querySelector("#projectLevel");
@@ -137,6 +139,7 @@ profileForm.addEventListener("submit", handleProfileSubmit);
 profileForm.addEventListener("input", updatePlanningViews);
 profileForm.addEventListener("change", updatePlanningViews);
 targetForm.addEventListener("submit", handleTargetSubmit);
+targetDirectionInput.addEventListener("change", applyDirectionDefaults);
 researchTargetBtn.addEventListener("click", researchTargetRequirements);
 runLocalAnalysisBtn.addEventListener("click", runLocalAnalysis);
 runAiAnalysisBtn.addEventListener("click", runAiAnalysis);
@@ -723,9 +726,12 @@ function resetForm() {
 function handleProfileSubmit(event) {
   event.preventDefault();
   profile = collectProfileFromForm();
+  const addedTargets = ensureAutoTargets(profile);
   saveProfile();
+  if (addedTargets > 0) saveTargets();
+  renderTargets();
   updatePlanningViews();
-  alert("档案已保存。");
+  alert(addedTargets > 0 ? "档案已保存，并已自动添加本校保研目标。" : "档案已保存。");
 }
 
 function updatePlanningViews() {
@@ -734,6 +740,14 @@ function updatePlanningViews() {
 }
 
 function collectProfileFromForm() {
+  const englishScores = {
+    cet4: parseOptionalNumber(cet4ScoreInput.value),
+    cet6: parseOptionalNumber(cet6ScoreInput.value),
+    ielts: parseOptionalNumber(ieltsScoreInput.value),
+    toefl: parseOptionalNumber(toeflScoreInput.value)
+  };
+  const bestEnglish = getBestEnglishRecord(englishScores);
+
   return {
     school: profileSchoolInput.value.trim(),
     major: profileMajorInput.value.trim(),
@@ -741,8 +755,9 @@ function collectProfileFromForm() {
     currentGpa: parseOptionalNumber(profileCurrentGpaInput.value),
     rank: parseOptionalNumber(profileRankInput.value),
     cohortSize: parseOptionalNumber(profileCohortSizeInput.value),
-    englishType: englishTypeInput.value,
-    englishScore: parseOptionalNumber(englishScoreInput.value),
+    englishScores,
+    englishType: bestEnglish.type,
+    englishScore: bestEnglish.score,
     researchLevel: researchLevelInput.value,
     competitionLevel: competitionLevelInput.value,
     projectLevel: projectLevelInput.value,
@@ -758,8 +773,11 @@ function populateProfileForm() {
   profileCurrentGpaInput.value = numberToInputValue(profile.currentGpa);
   profileRankInput.value = numberToInputValue(profile.rank);
   profileCohortSizeInput.value = numberToInputValue(profile.cohortSize);
-  englishTypeInput.value = profile.englishType || "";
-  englishScoreInput.value = numberToInputValue(profile.englishScore);
+  const englishScores = normalizeEnglishScores(profile);
+  cet4ScoreInput.value = numberToInputValue(englishScores.cet4);
+  cet6ScoreInput.value = numberToInputValue(englishScores.cet6);
+  ieltsScoreInput.value = numberToInputValue(englishScores.ielts);
+  toeflScoreInput.value = numberToInputValue(englishScores.toefl);
   researchLevelInput.value = profile.researchLevel || "none";
   competitionLevelInput.value = profile.competitionLevel || "none";
   projectLevelInput.value = profile.projectLevel || "none";
@@ -793,6 +811,20 @@ function handleTargetSubmit(event) {
   targetForm.reset();
   renderTargets();
   updatePlanningViews();
+}
+
+function applyDirectionDefaults() {
+  if (targetDirectionInput.value !== "本校保研") return;
+  const currentProfile = collectProfileFromForm();
+  if (!targetSchoolInput.value && currentProfile.school) {
+    targetSchoolInput.value = currentProfile.school;
+  }
+  if (!targetProgramInput.value && currentProfile.major) {
+    targetProgramInput.value = `${currentProfile.major} / 本校推免`;
+  }
+  if (!targetResearchPreferenceInput.value) {
+    targetResearchPreferenceInput.value = "优先核实学院保研细则、综合测评、排名口径和加分规则";
+  }
 }
 
 async function researchTargetRequirements() {
@@ -859,7 +891,8 @@ function applyTargetResearch(data) {
   targetResearchStatus.className = "target-research-status success";
   targetResearchStatus.innerHTML = `
     <strong>已找到 ${snippets.length} 条公开网页参考。</strong>
-    <span>这些不是官方自动承诺，排名/GPA 仍建议点开来源核实；能确定的字段已帮你填入。</span>
+    <span>AI 已尝试提取可填写字段；这些不是官方自动承诺，排名/GPA 仍建议点开来源核实。</span>
+    ${extracted.sourceSummary ? `<span>提取摘要：${escapeHtml(extracted.sourceSummary)}</span>` : ""}
     ${extracted.rankReference && !Number.isFinite(extracted.minRank) ? `<span>排名参考：${escapeHtml(extracted.rankReference)}，请结合你的专业人数换算。</span>` : ""}
     ${sourceLinks ? `<div class="source-links">${sourceLinks}</div>` : ""}
     ${data.searchUrl ? `<a href="${escapeHtml(data.searchUrl)}" target="_blank" rel="noopener noreferrer">打开完整搜索结果</a>` : ""}
@@ -884,6 +917,7 @@ function renderTargets() {
         ${target.minRank ? `<span class="tag">排名门槛：前 ${formatRank(target.minRank)}</span>` : ""}
         ${target.minGpa ? `<span class="tag">GPA 门槛：${formatGpa(target.minGpa)}</span>` : ""}
         ${target.englishRequirement ? `<span class="tag">${escapeHtml(target.englishRequirement)}</span>` : ""}
+        ${target.autoGenerated ? '<span class="tag">自动生成</span>' : ""}
       </div>
       ${target.researchPreference ? `<p>科研偏好：${escapeHtml(target.researchPreference)}</p>` : ""}
       <div class="row-actions">
@@ -896,6 +930,31 @@ function renderTargets() {
   targetList.querySelectorAll(".delete-target").forEach((button) => {
     button.addEventListener("click", () => deleteTarget(button.dataset.id));
   });
+}
+
+function ensureAutoTargets(profileData) {
+  let added = 0;
+  const directions = Array.isArray(profileData.directions) ? profileData.directions : [];
+
+  if (directions.includes("本校保研") && profileData.school) {
+    const exists = targets.some((target) => target.direction === "本校保研" && target.school === profileData.school);
+    if (!exists) {
+      targets.push({
+        id: createId("target"),
+        school: profileData.school,
+        program: profileData.major ? `${profileData.major} / 本校推免` : "本校推免",
+        direction: "本校保研",
+        minRank: null,
+        minGpa: null,
+        englishRequirement: "",
+        researchPreference: "优先核实学院保研细则、综合测评、排名口径和加分规则",
+        autoGenerated: true
+      });
+      added += 1;
+    }
+  }
+
+  return added;
 }
 
 function renderTargetComparison() {
@@ -1069,7 +1128,7 @@ function renderTimeline(currentProfile, dimensions, pathScores) {
 function getPlanningDimensions(profileData, coursesSummary) {
   const gpa = Number.isFinite(profileData.currentGpa) ? profileData.currentGpa : coursesSummary.overallGpa;
   const rankPercent = getRankPercent(profileData);
-  const english = getEnglishScore(profileData.englishType, profileData.englishScore);
+  const english = getEnglishScore(profileData);
   const research = getLevelScore(profileData.researchLevel, 10);
   const competition = getLevelScore(profileData.competitionLevel, 10);
   const project = getLevelScore(profileData.projectLevel, 10);
@@ -1263,7 +1322,8 @@ function buildTargetChecks(target, currentProfile, currentGpa) {
 }
 
 function compareEnglishRequirement(requirement, currentProfile) {
-  if (!currentProfile.englishType || !Number.isFinite(currentProfile.englishScore)) {
+  const englishRecord = getEnglishRecordForRequirement(requirement, currentProfile);
+  if (!englishRecord.type || !Number.isFinite(englishRecord.score)) {
     return {
       status: "unknown",
       statusLabel: "信息不足",
@@ -1280,7 +1340,7 @@ function compareEnglishRequirement(requirement, currentProfile) {
     };
   }
 
-  const diff = currentProfile.englishScore - requiredScore;
+  const diff = englishRecord.score - requiredScore;
   const status = diff >= 0 ? "ok" : diff >= -20 ? "near" : "risk";
   return {
     status,
@@ -1431,7 +1491,7 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
     nextActions.push(isEarlyStage ? "本学年先记录每门课成绩和学分，等学院公布排名后再做强判断。" : "先查清专业排名、专业人数、学院保研名额和近三年去向。");
   }
 
-  const englishScore = getEnglishScore(profileData.englishType, profileData.englishScore);
+  const englishScore = getEnglishScore(profileData);
   score += englishScore.points;
   if (englishScore.points >= 12) {
     strengths.push(englishScore.message);
@@ -1667,7 +1727,13 @@ function getRankScore(rankPercent) {
   return 3;
 }
 
-function getEnglishScore(type, score) {
+function getEnglishScore(typeOrProfile, score) {
+  if (typeof typeOrProfile === "object" && typeOrProfile !== null) {
+    const best = getBestEnglishRecord(normalizeEnglishScores(typeOrProfile));
+    return getEnglishScore(best.type, best.score);
+  }
+
+  const type = typeOrProfile;
   if (!type || !Number.isFinite(score)) {
     return { points: 4, message: "英语成绩未填写，外校推免、出国和部分项目会有不确定性。" };
   }
@@ -1700,6 +1766,54 @@ function getEnglishScore(type, score) {
   }
 
   return { points: 4, message: "英语信息无法识别，需要补充可比较的分数。" };
+}
+
+function normalizeEnglishScores(profileData) {
+  const scores = profileData && typeof profileData.englishScores === "object" ? profileData.englishScores : {};
+  const normalized = {
+    cet4: parseOptionalNumber(scores.cet4),
+    cet6: parseOptionalNumber(scores.cet6),
+    ielts: parseOptionalNumber(scores.ielts),
+    toefl: parseOptionalNumber(scores.toefl)
+  };
+
+  if (profileData && profileData.englishType && Number.isFinite(profileData.englishScore)) {
+    normalized[profileData.englishType] = profileData.englishScore;
+  }
+
+  return normalized;
+}
+
+function getBestEnglishRecord(scores) {
+  const records = Object.entries(scores || {})
+    .filter(([, value]) => Number.isFinite(value))
+    .map(([type, value]) => ({
+      type,
+      score: value,
+      points: getEnglishScore(type, value).points
+    }))
+    .sort((a, b) => b.points - a.points);
+
+  return records[0] || { type: "", score: null, points: 0 };
+}
+
+function getEnglishRecordForRequirement(requirement, profileData) {
+  const scores = normalizeEnglishScores(profileData);
+  const text = String(requirement || "").toLowerCase();
+  const type = /六级|cet-?6/.test(text)
+    ? "cet6"
+    : /四级|cet-?4/.test(text)
+      ? "cet4"
+      : /雅思|ielts/.test(text)
+        ? "ielts"
+        : /托福|toefl/.test(text)
+          ? "toefl"
+          : "";
+
+  if (type && Number.isFinite(scores[type])) {
+    return { type, score: scores[type] };
+  }
+  return getBestEnglishRecord(scores);
 }
 
 function getRankPercent(profileData) {
@@ -1891,7 +2005,8 @@ function normalizeTarget(target) {
     minRank: parseOptionalNumber(target.minRank),
     minGpa: parseOptionalNumber(target.minGpa),
     englishRequirement: target.englishRequirement || "",
-    researchPreference: target.researchPreference || ""
+    researchPreference: target.researchPreference || "",
+    autoGenerated: Boolean(target.autoGenerated)
   };
 }
 
@@ -1955,8 +2070,11 @@ function formatEnglish(profileData) {
     ielts: "雅思",
     toefl: "托福"
   };
-  if (!profileData.englishType || !Number.isFinite(profileData.englishScore)) return "未填写";
-  return `${labels[profileData.englishType] || profileData.englishType} ${profileData.englishScore}`;
+  const scores = normalizeEnglishScores(profileData);
+  const items = Object.entries(scores)
+    .filter(([, value]) => Number.isFinite(value))
+    .map(([type, value]) => `${labels[type] || type} ${value}`);
+  return items.length > 0 ? items.join("，") : "未填写";
 }
 
 function numberToInputValue(value) {

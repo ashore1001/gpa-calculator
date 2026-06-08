@@ -220,20 +220,22 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="english-grid">
           <div>
-            <label for="englishType">英语类型</label>
-            <select id="englishType">
-              <option value="">暂不填写</option>
-              <option value="cet4">四级</option>
-              <option value="cet6">六级</option>
-              <option value="ielts">雅思</option>
-              <option value="toefl">托福</option>
-            </select>
+            <label for="cet4Score">四级</label>
+            <input id="cet4Score" type="number" min="0" step="1" placeholder="例如：520">
           </div>
           <div>
-            <label for="englishScore">英语分数</label>
-            <input id="englishScore" type="number" min="0" step="0.1" placeholder="例如：六级 520">
+            <label for="cet6Score">六级</label>
+            <input id="cet6Score" type="number" min="0" step="1" placeholder="例如：510">
+          </div>
+          <div>
+            <label for="ieltsScore">雅思</label>
+            <input id="ieltsScore" type="number" min="0" step="0.5" placeholder="例如：6.5">
+          </div>
+          <div>
+            <label for="toeflScore">托福</label>
+            <input id="toeflScore" type="number" min="0" step="1" placeholder="例如：90">
           </div>
         </div>
 
@@ -284,7 +286,7 @@
         <div class="panel-heading">
           <div>
             <h2 id="targetTitle">目标院校</h2>
-            <p>只记录你手填的目标和已知门槛，不内置官方概率。</p>
+            <p>AI 会尽量自动检索并补全公开门槛，仍需以官网当年通知为准。</p>
           </div>
         </div>
 
@@ -322,7 +324,7 @@
           <input id="targetResearchPreference" type="text" placeholder="例如：偏好科研项目、论文或竞赛">
 
           <div class="target-actions">
-            <button class="secondary-button" type="button" id="researchTargetBtn">联网查找参考</button>
+            <button class="secondary-button" type="button" id="researchTargetBtn">AI 自动检索并填入</button>
             <button class="primary-button" type="submit">添加目标院校</button>
           </div>
           <div class="target-research-status" id="targetResearchStatus">

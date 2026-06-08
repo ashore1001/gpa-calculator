@@ -234,6 +234,12 @@ textarea:focus {
   min-width: 0;
 }
 
+.english-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
 .primary-button,
 .secondary-button,
 .danger-button,
@@ -1156,6 +1162,10 @@ td {
 
   .target-actions {
     grid-template-columns: 1fr;
+  }
+
+  .english-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .direction-field {

@@ -54,11 +54,17 @@ module.exports = async function handler(req, res) {
 
   try {
     const results = await searchWeb(query, searchUrl, fallbackSearchUrl);
+    const extracted = await extractRequirementsWithAi({
+      school,
+      program,
+      direction,
+      results
+    });
     sendJson(res, 200, {
       status: "ok",
       query,
       searchUrl: fallbackSearchUrl,
-      extracted: extractRequirements(results),
+      extracted,
       results: results.slice(0, 5),
       disclaimer: "公开网页信息可能过期或不完整，请以学校学院官网、招生简章和当年通知为准。"
     });
@@ -190,6 +196,62 @@ function extractRequirements(results) {
     englishRequirement: englishMatch ? cleanHtml(englishMatch[1]) : "",
     researchPreference: researchKeywords.join("，")
   };
+}
+
+async function extractRequirementsWithAi(context) {
+  const fallback = extractRequirements(context.results);
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) return fallback;
+
+  try {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: [
+              "你是院校公开资料提取助手，只能从搜索结果标题、摘要和链接中提取信息。",
+              "不要编造最低排名、GPA、英语要求或科研偏好。",
+              "没有明确证据就返回 null 或空字符串。",
+              "输出 JSON：minGpa(number|null), minRank(number|null), rankReference(string), englishRequirement(string), researchPreference(string), sourceSummary(string)。"
+            ].join("\n")
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              school: context.school,
+              program: context.program,
+              direction: context.direction,
+              results: context.results.slice(0, 5)
+            }, null, 2)
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) return fallback;
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(text);
+    return {
+      minGpa: Number.isFinite(Number(parsed.minGpa)) ? Number(parsed.minGpa) : fallback.minGpa,
+      minRank: Number.isFinite(Number(parsed.minRank)) ? Number(parsed.minRank) : fallback.minRank,
+      rankReference: parsed.rankReference || fallback.rankReference || "",
+      englishRequirement: parsed.englishRequirement || fallback.englishRequirement || "",
+      researchPreference: parsed.researchPreference || fallback.researchPreference || "",
+      sourceSummary: parsed.sourceSummary || ""
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 function cleanHtml(value) {
