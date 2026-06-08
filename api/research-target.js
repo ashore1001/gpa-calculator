@@ -50,22 +50,31 @@ module.exports = async function handler(req, res) {
   const direction = String(payload.direction || "推免").trim();
   const query = buildSearchQuery(school, program, direction);
   const searchUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  const fallbackSearchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
 
   try {
-    const results = await searchDuckDuckGo(searchUrl);
+    const results = await searchWeb(query, searchUrl, fallbackSearchUrl);
     sendJson(res, 200, {
       status: "ok",
       query,
-      searchUrl,
+      searchUrl: fallbackSearchUrl,
       extracted: extractRequirements(results),
       results: results.slice(0, 5),
       disclaimer: "公开网页信息可能过期或不完整，请以学校学院官网、招生简章和当年通知为准。"
     });
   } catch (error) {
-    sendJson(res, 502, {
-      error: `公开资料检索失败：${error.message}`,
+    const fallback = [{
+      title: "打开完整搜索结果",
+      url: fallbackSearchUrl,
+      snippet: `自动检索被搜索服务限制：${error.message}。可以点开搜索结果手动查看学校官网、学院通知和夏令营公告。`
+    }];
+    sendJson(res, 200, {
+      status: "limited",
       query,
-      searchUrl
+      searchUrl: fallbackSearchUrl,
+      extracted: extractRequirements(fallback),
+      results: fallback,
+      disclaimer: "搜索服务可能限制服务器访问。请以打开后的学校学院官网、招生简章和当年通知为准。"
     });
   }
 };
@@ -118,6 +127,46 @@ async function searchDuckDuckGo(searchUrl) {
       url: searchUrl,
       snippet: "自动解析失败，但可以打开完整搜索结果手动查看学校官网、学院通知和夏令营公告。"
     }];
+  }
+
+  return results;
+}
+
+async function searchWeb(query, duckUrl, bingUrl) {
+  try {
+    return await searchDuckDuckGo(duckUrl);
+  } catch (error) {
+    return searchBing(query, bingUrl, error);
+  }
+}
+
+async function searchBing(query, bingUrl, originalError) {
+  const response = await fetch(bingUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`${originalError.message}；备用搜索返回 ${response.status}`);
+  }
+
+  const html = await response.text();
+  const results = [];
+  const itemRegex = /<li class="b_algo"[\s\S]*?<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/gi;
+  let match;
+
+  while ((match = itemRegex.exec(html)) && results.length < 8) {
+    results.push({
+      title: cleanHtml(match[2]),
+      url: cleanHtml(match[1]),
+      snippet: cleanHtml(match[3])
+    });
+  }
+
+  if (results.length === 0) {
+    throw new Error(`${originalError.message}；备用搜索没有解析到结果`);
   }
 
   return results;
