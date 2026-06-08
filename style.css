@@ -268,6 +268,64 @@ textarea:focus {
   border-color: var(--primary);
 }
 
+.target-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.target-actions .primary-button {
+  margin-top: 0;
+}
+
+.target-research-status {
+  margin-top: 10px;
+  border: 1px solid #d8deea;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fbfcfe;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.target-research-status strong,
+.target-research-status span {
+  display: block;
+}
+
+.target-research-status.success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.target-research-status.error {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+.target-research-status.loading {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.source-links a,
+.target-research-status > a {
+  color: inherit;
+  font-weight: 750;
+}
+
 .danger-button {
   background: var(--danger-soft);
   color: var(--danger);
@@ -1094,6 +1152,10 @@ td {
 
   .hero-actions {
     flex-direction: column;
+  }
+
+  .target-actions {
+    grid-template-columns: 1fr;
   }
 
   .direction-field {

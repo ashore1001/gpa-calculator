@@ -96,6 +96,8 @@ const targetMinGpaInput = document.querySelector("#targetMinGpa");
 const targetEnglishRequirementInput = document.querySelector("#targetEnglishRequirement");
 const targetResearchPreferenceInput = document.querySelector("#targetResearchPreference");
 const targetList = document.querySelector("#targetList");
+const researchTargetBtn = document.querySelector("#researchTargetBtn");
+const targetResearchStatus = document.querySelector("#targetResearchStatus");
 
 const runLocalAnalysisBtn = document.querySelector("#runLocalAnalysisBtn");
 const runAiAnalysisBtn = document.querySelector("#runAiAnalysisBtn");
@@ -135,6 +137,7 @@ profileForm.addEventListener("submit", handleProfileSubmit);
 profileForm.addEventListener("input", updatePlanningViews);
 profileForm.addEventListener("change", updatePlanningViews);
 targetForm.addEventListener("submit", handleTargetSubmit);
+researchTargetBtn.addEventListener("click", researchTargetRequirements);
 runLocalAnalysisBtn.addEventListener("click", runLocalAnalysis);
 runAiAnalysisBtn.addEventListener("click", runAiAnalysis);
 saveEndpointBtn.addEventListener("click", saveAiEndpoint);
@@ -792,6 +795,77 @@ function handleTargetSubmit(event) {
   updatePlanningViews();
 }
 
+async function researchTargetRequirements() {
+  const school = targetSchoolInput.value.trim();
+  if (!school) {
+    alert("先填写目标学校，再联网查找参考。");
+    targetSchoolInput.focus();
+    return;
+  }
+
+  researchTargetBtn.disabled = true;
+  targetResearchStatus.className = "target-research-status loading";
+  targetResearchStatus.textContent = "正在查找公开网页参考，可能需要几秒钟...";
+
+  try {
+    const response = await fetch(getResearchEndpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        school,
+        program: targetProgramInput.value.trim(),
+        direction: targetDirectionInput.value
+      })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "查找失败。");
+    }
+
+    applyTargetResearch(data);
+  } catch (error) {
+    targetResearchStatus.className = "target-research-status error";
+    targetResearchStatus.innerHTML = `
+      <strong>暂时没有自动查到。</strong>
+      <span>${escapeHtml(error.message || "网络查找失败，可以先手动添加目标，后续再补门槛。")}</span>
+    `;
+  } finally {
+    researchTargetBtn.disabled = false;
+  }
+}
+
+function applyTargetResearch(data) {
+  const extracted = data.extracted || {};
+
+  if (!targetMinGpaInput.value && Number.isFinite(extracted.minGpa)) {
+    targetMinGpaInput.value = String(extracted.minGpa);
+  }
+  if (!targetMinRankInput.value && Number.isFinite(extracted.minRank)) {
+    targetMinRankInput.value = String(extracted.minRank);
+  }
+  if (!targetEnglishRequirementInput.value && extracted.englishRequirement) {
+    targetEnglishRequirementInput.value = extracted.englishRequirement;
+  }
+  if (!targetResearchPreferenceInput.value && extracted.researchPreference) {
+    targetResearchPreferenceInput.value = extracted.researchPreference;
+  }
+
+  const snippets = Array.isArray(data.results) ? data.results.slice(0, 3) : [];
+  const sourceLinks = snippets.map((item) => `
+    <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || "公开来源")}</a>
+  `).join("");
+
+  targetResearchStatus.className = "target-research-status success";
+  targetResearchStatus.innerHTML = `
+    <strong>已找到 ${snippets.length} 条公开网页参考。</strong>
+    <span>这些不是官方自动承诺，排名/GPA 仍建议点开来源核实；能确定的字段已帮你填入。</span>
+    ${extracted.rankReference && !Number.isFinite(extracted.minRank) ? `<span>排名参考：${escapeHtml(extracted.rankReference)}，请结合你的专业人数换算。</span>` : ""}
+    ${sourceLinks ? `<div class="source-links">${sourceLinks}</div>` : ""}
+    ${data.searchUrl ? `<a href="${escapeHtml(data.searchUrl)}" target="_blank" rel="noopener noreferrer">打开完整搜索结果</a>` : ""}
+  `;
+}
+
 function renderTargets() {
   targetList.innerHTML = "";
 
@@ -1145,7 +1219,7 @@ function buildTargetChecks(target, currentProfile, currentGpa) {
       detail: `当前 ${formatGpa(currentGpa)} / 门槛 ${formatGpa(target.minGpa)}`
     });
   } else {
-    checks.push(createUnknownCheck("GPA", "目标未填写 GPA 门槛"));
+    checks.push(createUnknownCheck("GPA", "门槛未知，建议联网查找并核实学院通知"));
   }
 
   if (target.minRank) {
@@ -1160,7 +1234,7 @@ function buildTargetChecks(target, currentProfile, currentGpa) {
       checks.push(createUnknownCheck("排名", "档案未填写专业排名"));
     }
   } else {
-    checks.push(createUnknownCheck("排名", "目标未填写排名门槛"));
+    checks.push(createUnknownCheck("排名", "门槛未知，建议查学院推免/夏令营通知"));
   }
 
   if (target.englishRequirement) {
@@ -1170,7 +1244,7 @@ function buildTargetChecks(target, currentProfile, currentGpa) {
       ...englishResult
     });
   } else {
-    checks.push(createUnknownCheck("英语", "目标未填写英语要求"));
+    checks.push(createUnknownCheck("英语", "要求未知，建议查招生简章或夏令营通知"));
   }
 
   if (target.researchPreference) {
@@ -1182,7 +1256,7 @@ function buildTargetChecks(target, currentProfile, currentGpa) {
       detail: `当前科研：${levelLabels[currentProfile.researchLevel] || "暂无"}；目标偏好：${target.researchPreference}`
     });
   } else {
-    checks.push(createUnknownCheck("科研", "目标未填写科研偏好"));
+    checks.push(createUnknownCheck("科研", "偏好未知，建议查看项目介绍和导师方向"));
   }
 
   return checks;
@@ -1313,6 +1387,8 @@ async function runAiAnalysis() {
 }
 
 function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
+  const stage = inferGradeStage(profileData.grade);
+  const isEarlyStage = stage === "大一" || stage === "大二";
   const analysisGpa = Number.isFinite(profileData.currentGpa) ? profileData.currentGpa : coursesSummary.overallGpa;
   const hasRank = Number.isFinite(profileData.rank)
     && Number.isFinite(profileData.cohortSize)
@@ -1351,8 +1427,8 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
     }
   } else {
     score += 8;
-    weaknesses.push("排名信息不足，保研资格和目标院校判断会明显失真。");
-    nextActions.push("先查清专业排名、专业人数、学院保研名额和近三年去向。");
+    weaknesses.push(isEarlyStage ? "排名还未稳定或未填写，大一阶段先把高学分课程稳住。" : "排名信息不足，保研资格和目标院校判断会明显失真。");
+    nextActions.push(isEarlyStage ? "本学年先记录每门课成绩和学分，等学院公布排名后再做强判断。" : "先查清专业排名、专业人数、学院保研名额和近三年去向。");
   }
 
   const englishScore = getEnglishScore(profileData.englishType, profileData.englishScore);
@@ -1360,8 +1436,8 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
   if (englishScore.points >= 12) {
     strengths.push(englishScore.message);
   } else {
-    weaknesses.push(englishScore.message);
-    nextActions.push("把英语补到可证明水平：六级、雅思或托福至少拿出一个能写进材料的成绩。");
+    weaknesses.push(isEarlyStage ? `${englishScore.message}，但大一阶段还有时间系统补。` : englishScore.message);
+    nextActions.push(isEarlyStage ? "英语先做长期线：四级/六级词汇、阅读和听力每周固定投入，不急着用申请季标准自责。" : "把英语补到可证明水平：六级、雅思或托福至少拿出一个能写进材料的成绩。");
   }
 
   const researchScore = getLevelScore(profileData.researchLevel, 7);
@@ -1372,15 +1448,15 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
   if (researchScore >= 5) strengths.push(`科研基础${levelLabels[profileData.researchLevel]}，有材料可写。`);
   if (competitionScore >= 4) strengths.push(`竞赛水平${levelLabels[profileData.competitionLevel]}，能作为补充亮点。`);
   if (projectScore >= 4) strengths.push(`项目经历${levelLabels[profileData.projectLevel]}，有展示空间。`);
-  if (researchScore < 3) weaknesses.push("科研经历偏弱，外校推免和导师匹配会吃亏。");
-  if (competitionScore < 2.5) weaknesses.push("竞赛亮点不足，简历区分度有限。");
-  if (projectScore < 2.5) weaknesses.push("项目成果还不够清楚，需要整理成可展示材料。");
+  if (researchScore < 3) weaknesses.push(isEarlyStage ? "科研还处在空白/探索期，这对大一正常，重点是尽快找到一个可持续方向。" : "科研经历偏弱，外校推免和导师匹配会吃亏。");
+  if (competitionScore < 2.5) weaknesses.push(isEarlyStage ? "竞赛还没形成成果很正常，大一先选 1-2 个适合长期打的赛道。" : "竞赛亮点不足，简历区分度有限。");
+  if (projectScore < 2.5) weaknesses.push(isEarlyStage ? "项目经历还浅，大一更适合从课程项目和小作品开始积累。" : "项目成果还不够清楚，需要整理成可展示材料。");
 
   if (profileData.awardsText) {
     score += 4;
     strengths.push("已有奖项或亮点描述，后续可以打磨进简历和个人陈述。");
   } else {
-    weaknesses.push("奖项和材料亮点未填写，后续报告只能给出较粗判断。");
+    weaknesses.push(isEarlyStage ? "奖项亮点还没形成很正常，先把课程、英语和一个长期项目线跑起来。" : "奖项和材料亮点未填写，后续报告只能给出较粗判断。");
   }
 
   if (Array.isArray(profileData.directions) && profileData.directions.length > 0) {
@@ -1394,8 +1470,8 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
     score += 6;
     strengths.push(`已记录 ${targetListData.length} 个目标，后续可以逐个对照门槛。`);
   } else {
-    weaknesses.push("没有目标院校，无法对照排名、GPA、英语和科研门槛。");
-    nextActions.push("先添加 3-5 个目标：保底、匹配、冲刺各至少一个。");
+    weaknesses.push(isEarlyStage ? "目标院校还没定死没关系，但需要先建立目标池，避免只凭感觉努力。" : "没有目标院校，无法对照排名、GPA、英语和科研门槛。");
+    nextActions.push(isEarlyStage ? "先建立 5-8 个目标池，不急着判断能不能上，重点看方向、学院和近年通知。" : "先添加 3-5 个目标：保底、匹配、冲刺各至少一个。");
   }
 
   targetListData.forEach((target) => {
@@ -1408,15 +1484,15 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
   });
 
   nextActions.push("把课程表分成核心课、拉分课、风险课，优先处理最影响 GPA 的高学分课程。");
-  nextActions.push("准备一版升学材料清单：简历、成绩单、排名证明、英语证明、项目说明、推荐人名单。");
+  nextActions.push(isEarlyStage ? "大一先做成长档案：课程成绩、英语进度、读过的资料、尝试过的项目和竞赛记录。" : "准备一版升学材料清单：简历、成绩单、排名证明、英语证明、项目说明、推荐人名单。");
   if (analysisGpa < 4.2) nextActions.push("下一阶段优先追求高学分课程 90+，不要把精力平均撒在低权重事项上。");
-  if (researchScore < 5) nextActions.push("尽快找一个能持续产出的科研或项目线，目标是形成可展示成果，而不是只写参与经历。");
+  if (researchScore < 5) nextActions.push(isEarlyStage ? "本学期先了解 2-3 位老师/实验室方向，争取大二前确定一条可持续项目线。" : "尽快找一个能持续产出的科研或项目线，目标是形成可展示成果，而不是只写参与经历。");
 
   const boundedScore = Math.round(clamp(score, 0, 100));
-  const outcome = getOutcome(boundedScore, hasRank, rankPercent, analysisGpa);
+  const outcome = getOutcome(boundedScore, hasRank, rankPercent, analysisGpa, stage);
 
   return {
-    disclaimer: "非官方预测，仅用于自我规划；不代表学校政策、院校录取结论或真实概率承诺。",
+    disclaimer: `非官方预测，仅用于自我规划；当前按${stage}阶段解读，不代表学校政策、院校录取结论或真实概率承诺。`,
     competitivenessScore: boundedScore,
     riskLevel: outcome.level,
     estimatedRange: outcome.range,
@@ -1429,7 +1505,8 @@ function buildLocalAnalysis(profileData, coursesSummary, targetListData) {
       rankPercent: rankPercent === null ? null : formatPercent(rankPercent),
       targetCount: targetListData.length,
       courseCount: coursesSummary.courseCount,
-      totalCredits: formatCredits(coursesSummary.totalCredits)
+      totalCredits: formatCredits(coursesSummary.totalCredits),
+      stage
     }
   };
 }
@@ -1495,6 +1572,11 @@ function populateAiEndpoint() {
 
 function getAiEndpoint() {
   return aiEndpointInput.value.trim() || getDefaultAiEndpoint();
+}
+
+function getResearchEndpoint() {
+  const endpoint = getAiEndpoint();
+  return endpoint ? endpoint.replace(/\/api\/analyze$/, "/api/research-target") : "/api/research-target";
 }
 
 function getDefaultAiEndpoint() {
@@ -1669,7 +1751,23 @@ function getLevelScore(level, maxScore) {
   return (ratios[level] ?? 0) * maxScore;
 }
 
-function getOutcome(score, hasRank, rankPercent, gpa) {
+function getOutcome(score, hasRank, rankPercent, gpa, stage = "当前") {
+  if (stage === "大一") {
+    return {
+      level: "早期观察",
+      range: "暂不估计",
+      summary: "你现在还处在大一阶段，不适合用申请季标准判断保研概率。当前更该看 GPA 底盘、学习节奏、英语长期线和目标探索，而不是因为科研竞赛未成型就下结论。"
+    };
+  }
+
+  if (stage === "大二" && score >= 60) {
+    return {
+      level: "成长中",
+      range: "暂不精算",
+      summary: "大二可以开始对照目标门槛，但仍不适合给过于精确的概率。重点是把排名、英语和一条科研/项目主线跑出来。"
+    };
+  }
+
   if (!hasRank) {
     return {
       level: "信息不足",

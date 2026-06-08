@@ -321,7 +321,13 @@
           <label for="targetResearchPreference">科研偏好</label>
           <input id="targetResearchPreference" type="text" placeholder="例如：偏好科研项目、论文或竞赛">
 
-          <button class="primary-button" type="submit">添加目标院校</button>
+          <div class="target-actions">
+            <button class="secondary-button" type="button" id="researchTargetBtn">联网查找参考</button>
+            <button class="primary-button" type="submit">添加目标院校</button>
+          </div>
+          <div class="target-research-status" id="targetResearchStatus">
+            不清楚门槛时，可以先填学校和方向，再查找公开网页参考。
+          </div>
         </form>
 
         <div class="target-list" id="targetList"></div>

@@ -4,7 +4,7 @@
   "private": true,
   "description": "GPA calculator and graduate planning tool with a Vercel AI proxy.",
   "scripts": {
-    "check": "node --check script.js && node --check api/analyze.js",
+    "check": "node --check script.js && node --check api/analyze.js && node --check api/research-target.js",
     "start": "python3 -m http.server 8080"
   }
 }
