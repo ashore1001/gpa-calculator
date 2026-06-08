@@ -139,11 +139,67 @@ async function searchDuckDuckGo(searchUrl) {
 }
 
 async function searchWeb(query, duckUrl, bingUrl) {
+  if (process.env.TAVILY_API_KEY) {
+    return searchTavily(query);
+  }
+  if (process.env.SERPAPI_KEY) {
+    return searchSerpApi(query);
+  }
+
   try {
     return await searchDuckDuckGo(duckUrl);
   } catch (error) {
     return searchBing(query, bingUrl, error);
   }
+}
+
+async function searchTavily(query) {
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      api_key: process.env.TAVILY_API_KEY,
+      query,
+      search_depth: "basic",
+      max_results: 6,
+      include_answer: false
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Tavily 搜索返回 ${response.status}`);
+  }
+
+  const data = await response.json();
+  const results = Array.isArray(data.results) ? data.results : [];
+  if (results.length === 0) throw new Error("Tavily 没有返回结果");
+
+  return results.map((item) => ({
+    title: item.title || "公开来源",
+    url: item.url || "",
+    snippet: item.content || ""
+  }));
+}
+
+async function searchSerpApi(query) {
+  const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(query)}&hl=zh-cn&api_key=${encodeURIComponent(process.env.SERPAPI_KEY)}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`SerpAPI 搜索返回 ${response.status}`);
+  }
+
+  const data = await response.json();
+  const results = Array.isArray(data.organic_results) ? data.organic_results : [];
+  if (results.length === 0) throw new Error("SerpAPI 没有返回结果");
+
+  return results.slice(0, 6).map((item) => ({
+    title: item.title || "公开来源",
+    url: item.link || "",
+    snippet: item.snippet || ""
+  }));
 }
 
 async function searchBing(query, bingUrl, originalError) {
