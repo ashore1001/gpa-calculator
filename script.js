@@ -1721,13 +1721,13 @@ function calculateWeightedAverage(courseList) {
   const totalCredits = getTotalCredits(courseList);
   if (totalCredits === 0) return 0;
   return courseList.reduce((sum, course) => {
-    return sum + Number(course.score || 0) * Number(course.credits || 0);
+    return sum + Number(course.score ?? 0) * Number(course.credits ?? 0);
   }, 0) / totalCredits;
 }
 
 function calculateSimpleAverage(courseList) {
   if (courseList.length === 0) return 0;
-  return courseList.reduce((sum, course) => sum + Number(course.score || 0), 0) / courseList.length;
+  return courseList.reduce((sum, course) => sum + Number(course.score ?? 0), 0) / courseList.length;
 }
 
 function getTotalCredits(courseList) {
