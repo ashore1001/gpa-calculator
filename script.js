@@ -58,6 +58,7 @@ const submitBtn = document.querySelector("#submitBtn");
 const cancelEditBtn = document.querySelector("#cancelEditBtn");
 
 const overallGpaEl = document.querySelector("#overallGpa");
+const weightedAverageEl = document.querySelector("#weightedAverage");
 const totalCreditsEl = document.querySelector("#totalCredits");
 const courseCountEl = document.querySelector("#courseCount");
 const bestSemesterEl = document.querySelector("#bestSemester");
@@ -209,12 +210,14 @@ function render() {
 function renderSummary() {
   const totalCredits = getTotalCredits(courses);
   const overallGpa = calculateGpa(courses);
+  const weightedAverage = calculateWeightedAverage(courses);
   const semesterStats = getSemesterStats();
   const bestSemester = semesterStats
     .filter((item) => item.credits > 0)
     .sort((a, b) => b.gpa - a.gpa)[0];
 
   overallGpaEl.textContent = formatGpa(overallGpa);
+  weightedAverageEl.textContent = formatAverage(weightedAverage);
   totalCreditsEl.textContent = formatCredits(totalCredits);
   courseCountEl.textContent = courses.length;
   bestSemesterEl.textContent = bestSemester ? `${bestSemester.semester} ${formatGpa(bestSemester.gpa)}` : "暂无";
@@ -294,7 +297,7 @@ function renderSemesterSummary() {
     card.innerHTML = `
       <span>${escapeHtml(item.semester)}</span>
       <strong>${formatGpa(item.gpa)}</strong>
-      <span>${formatCredits(item.credits)} 学分 · ${item.count} 门课</span>
+      <span>${formatCredits(item.credits)} 学分 · ${item.count} 门课 · 均分 ${formatAverage(item.average)}</span>
     `;
     semesterList.appendChild(card);
   });
@@ -1655,6 +1658,7 @@ function getCoursesSummary() {
   const sortedCourses = courses.slice().sort((a, b) => scoreToPoint(a.score) - scoreToPoint(b.score));
   return {
     overallGpa: calculateGpa(courses),
+    weightedAverage: calculateWeightedAverage(courses),
     totalCredits: getTotalCredits(courses),
     totalPoints: getTotalPoints(courses),
     courseCount: courses.length,
@@ -1676,7 +1680,8 @@ function getSemesterStats() {
       semester,
       count: semesterCourses.length,
       credits: getTotalCredits(semesterCourses),
-      gpa: calculateGpa(semesterCourses)
+      gpa: calculateGpa(semesterCourses),
+      average: calculateWeightedAverage(semesterCourses)
     };
   });
 }
@@ -1705,6 +1710,14 @@ function calculateGpa(courseList) {
   const totalCredits = getTotalCredits(courseList);
   if (totalCredits === 0) return 0;
   return getTotalPoints(courseList) / totalCredits;
+}
+
+function calculateWeightedAverage(courseList) {
+  const totalCredits = getTotalCredits(courseList);
+  if (totalCredits === 0) return 0;
+  return courseList.reduce((sum, course) => {
+    return sum + Number(course.score || 0) * Number(course.credits || 0);
+  }, 0) / totalCredits;
 }
 
 function getTotalCredits(courseList) {
@@ -2151,6 +2164,10 @@ function formatCredits(value) {
 function formatScore(value) {
   const number = Number(value || 0);
   return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function formatAverage(value) {
+  return Number(value || 0).toFixed(1);
 }
 
 function formatPercent(value) {
