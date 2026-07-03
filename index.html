@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GPA Planner | 升学规划工具</title>
-  <link rel="stylesheet" href="style.css?v=20260703-avg2">
+  <link rel="stylesheet" href="style.css?v=20260703-practical">
 </head>
 <body>
   <main class="app-shell">
@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">Student Planning Tool</p>
         <h1>GPA 与升学规划工具</h1>
-        <p class="hero-copy">记录成绩、维护个人档案、手填目标院校门槛，并生成本地规则分析与严师型 AI 解读。</p>
+        <p class="hero-copy">先把均分、GPA、拖后腿课程和提分优先级算清楚；升学规划放到后面作为进阶功能。</p>
       </div>
       <div class="hero-actions">
         <button class="secondary-button" id="exportCsvBtn" type="button">导出 CSV</button>
@@ -45,6 +45,25 @@
         <span>最高学期 GPA</span>
         <strong id="bestSemester">暂无</strong>
       </article>
+    </section>
+
+    <section class="panel practical-panel" aria-labelledby="practicalTitle">
+      <div class="panel-heading">
+        <div>
+          <h2 id="practicalTitle">成绩诊断</h2>
+          <p>直接看当前最影响均分和 GPA 的问题。</p>
+        </div>
+      </div>
+      <div class="practical-grid">
+        <div>
+          <h3>关键提醒</h3>
+          <div class="insight-list" id="gradeInsightList"></div>
+        </div>
+        <div>
+          <h3>优先处理课程</h3>
+          <div class="priority-list" id="priorityCourseList"></div>
+        </div>
+      </div>
     </section>
 
     <section class="workspace">
@@ -155,6 +174,9 @@
         CSV 支持列名：课程名称/课程、学期、学分、分数。JSON 备份会包含课程、档案、目标院校和 AI 接口配置。
       </div>
     </section>
+
+    <details class="advanced-section">
+      <summary>进阶规划和 AI 分析</summary>
 
     <section class="panel dashboard-panel" aria-labelledby="dashboardTitle">
       <div class="panel-heading">
@@ -397,6 +419,8 @@
       <div class="target-compare-list" id="targetCompareList"></div>
     </section>
 
+    </details>
+
     <section class="panel table-panel" aria-labelledby="courseListTitle">
       <div class="panel-heading table-heading">
         <div>
@@ -437,6 +461,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=20260703-avg2"></script>
+  <script src="script.js?v=20260703-practical"></script>
 </body>
 </html>

@@ -161,6 +161,83 @@ h2 {
   margin-bottom: 18px;
 }
 
+.practical-panel {
+  margin-bottom: 18px;
+}
+
+.practical-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.practical-grid h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.insight-list,
+.priority-list {
+  display: grid;
+  gap: 8px;
+}
+
+.insight-item,
+.priority-item {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfe;
+}
+
+.priority-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.insight-item strong,
+.priority-item strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.insight-item span,
+.priority-item span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.priority-item b {
+  color: var(--primary);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.empty-state.compact {
+  padding: 12px;
+}
+
+.advanced-section {
+  margin-bottom: 18px;
+}
+
+.advanced-section > summary {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-weight: 800;
+}
+
+.advanced-section[open] > summary {
+  margin-bottom: 18px;
+}
+
 .workspace {
   grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
 }
@@ -1035,7 +1112,8 @@ td {
 @media (max-width: 940px) {
   .workspace,
   .planning-grid,
-  .insight-grid {
+  .insight-grid,
+  .practical-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1139,9 +1217,14 @@ td {
 
   .workspace,
   .planning-grid,
-  .insight-grid {
+  .insight-grid,
+  .practical-grid {
     gap: 0;
     margin-bottom: 0;
+  }
+
+  .priority-item {
+    grid-template-columns: 1fr;
   }
 
   .analysis-panel,

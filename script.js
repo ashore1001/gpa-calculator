@@ -63,6 +63,9 @@ const simpleAverageEl = document.querySelector("#simpleAverage");
 const totalCreditsEl = document.querySelector("#totalCredits");
 const courseCountEl = document.querySelector("#courseCount");
 const bestSemesterEl = document.querySelector("#bestSemester");
+const gradeInsightList = document.querySelector("#gradeInsightList");
+const priorityCourseList = document.querySelector("#priorityCourseList");
+const advancedSection = document.querySelector(".advanced-section");
 const tableBody = document.querySelector("#courseTableBody");
 const emptyState = document.querySelector("#emptyState");
 const courseTableWrap = document.querySelector("#courseTableWrap");
@@ -153,6 +156,12 @@ exportBackupBtn.addEventListener("click", exportBackup);
 importBackupBtn.addEventListener("click", () => backupFileInput.click());
 csvFileInput.addEventListener("change", handleCsvImport);
 backupFileInput.addEventListener("change", handleBackupImport);
+advancedSection.addEventListener("toggle", () => {
+  if (advancedSection.open) {
+    renderPlanningDashboard();
+    renderTargetComparison();
+  }
+});
 window.addEventListener("resize", debounce(() => {
   renderGpaTrendChart();
   renderPlanningDashboard();
@@ -198,6 +207,7 @@ function handleCourseSubmit(event) {
 function render() {
   renderSemesterFilter();
   renderSummary();
+  renderPracticalInsights();
   renderCourseTable();
   renderSemesterSummary();
   renderTargets();
@@ -228,6 +238,88 @@ function renderSummary() {
   if (!profileCurrentGpaInput.value && overallGpa > 0) {
     profileCurrentGpaInput.placeholder = `自动参考：${formatGpa(overallGpa)}`;
   }
+}
+
+function renderPracticalInsights() {
+  if (courses.length === 0) {
+    gradeInsightList.innerHTML = '<div class="empty-state compact">添加课程后，这里会直接指出成绩问题。</div>';
+    priorityCourseList.innerHTML = '<div class="empty-state compact">暂无课程。</div>';
+    return;
+  }
+
+  const weightedAverage = calculateWeightedAverage(courses);
+  const simpleAverage = calculateSimpleAverage(courses);
+  const overallGpa = calculateGpa(courses);
+  const below90 = courses.filter((course) => Number(course.score) < 90);
+  const below80 = courses.filter((course) => Number(course.score) < 80);
+  const failed = courses.filter((course) => Number(course.score) < 60);
+  const totalCredits = getTotalCredits(courses);
+  const heavyLowCourses = courses
+    .filter((course) => Number(course.credits) >= 3 && Number(course.score) < 90)
+    .sort((a, b) => getCoursePriorityScore(b) - getCoursePriorityScore(a));
+  const averageGap = weightedAverage - simpleAverage;
+
+  const insights = [];
+  insights.push({
+    label: "当前水平",
+    value: `加权均分 ${formatAverage(weightedAverage)}，普通均分 ${formatAverage(simpleAverage)}，GPA ${formatGpa(overallGpa)}`
+  });
+
+  if (Math.abs(averageGap) >= 0.5) {
+    insights.push({
+      label: averageGap < 0 ? "高学分拖累" : "高学分支撑",
+      value: averageGap < 0
+        ? `加权均分比普通均分低 ${Math.abs(averageGap).toFixed(1)}，说明高学分课分数偏低。`
+        : `加权均分比普通均分高 ${averageGap.toFixed(1)}，说明高学分课发挥较好。`
+    });
+  }
+
+  insights.push({
+    label: "90 分以下",
+    value: below90.length > 0 ? `${below90.length} 门课低于 90，是后续提均分的主要空间。` : "所有课程都在 90+，成绩底盘很稳。"
+  });
+
+  if (below80.length > 0) {
+    insights.push({ label: "风险课程", value: `${below80.length} 门课低于 80，会明显压低绩点和平均分。` });
+  }
+  if (failed.length > 0) {
+    insights.push({ label: "挂科风险", value: `${failed.length} 门课低于 60，需要优先处理重修或补救。` });
+  }
+
+  const weightedScorePoints = courses.reduce((sum, course) => sum + Number(course.score || 0) * Number(course.credits || 0), 0);
+  const to90Average = totalCredits > 0 ? ((90 * totalCredits) - weightedScorePoints) / totalCredits : 0;
+  if (weightedAverage < 90) {
+    insights.push({
+      label: "到 90 加权均分",
+      value: `还差约 ${Math.max(0, to90Average).toFixed(1)} 分/学分的加权分数，需要优先抬高高学分课。`
+    });
+  }
+
+  gradeInsightList.innerHTML = insights.map((item) => `
+    <article class="insight-item">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.value)}</span>
+    </article>
+  `).join("");
+
+  const priorities = heavyLowCourses.length > 0 ? heavyLowCourses.slice(0, 5) : courses
+    .slice()
+    .sort((a, b) => Number(b.credits) - Number(a.credits))
+    .slice(0, 5);
+
+  priorityCourseList.innerHTML = priorities.map((course) => {
+    const target = Number(course.score) >= 90 ? 95 : 90;
+    const pointGain = Math.max(0, target - Number(course.score)) * Number(course.credits || 0);
+    return `
+      <article class="priority-item">
+        <div>
+          <strong>${escapeHtml(course.name)}</strong>
+          <span>${escapeHtml(course.semester)} · ${formatCredits(course.credits)} 学分 · ${formatScore(course.score)} 分</span>
+        </div>
+        <b>${pointGain > 0 ? `补到 ${target} 可多 ${pointGain.toFixed(1)} 加权分` : "保持优势"}</b>
+      </article>
+    `;
+  }).join("");
 }
 
 function renderCourseTable() {
@@ -1728,6 +1820,10 @@ function calculateWeightedAverage(courseList) {
 function calculateSimpleAverage(courseList) {
   if (courseList.length === 0) return 0;
   return courseList.reduce((sum, course) => sum + Number(course.score ?? 0), 0) / courseList.length;
+}
+
+function getCoursePriorityScore(course) {
+  return Math.max(0, 90 - Number(course.score || 0)) * Number(course.credits || 0);
 }
 
 function getTotalCredits(courseList) {
