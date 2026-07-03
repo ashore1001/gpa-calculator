@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GPA Planner | 升学规划工具</title>
-  <link rel="stylesheet" href="style.css?v=20260703-practical">
+  <link rel="stylesheet" href="style.css?v=20260703-transfer">
 </head>
 <body>
   <main class="app-shell">
@@ -15,8 +15,10 @@
         <p class="hero-copy">先把均分、GPA、拖后腿课程和提分优先级算清楚；升学规划放到后面作为进阶功能。</p>
       </div>
       <div class="hero-actions">
+        <button class="secondary-button" id="importCsvBtn" type="button">导入 CSV</button>
         <button class="secondary-button" id="exportCsvBtn" type="button">导出 CSV</button>
-        <button class="danger-button" id="clearAllBtn" type="button">清空课程</button>
+        <button class="secondary-button" id="importBackupBtn" type="button">恢复备份</button>
+        <button class="secondary-button" id="exportBackupBtn" type="button">导出备份</button>
       </div>
     </header>
 
@@ -28,10 +30,6 @@
       <article class="metric-card">
         <span>加权均分</span>
         <strong id="weightedAverage">0.0</strong>
-      </article>
-      <article class="metric-card">
-        <span>普通均分</span>
-        <strong id="simpleAverage">0.0</strong>
       </article>
       <article class="metric-card">
         <span>总学分</span>
@@ -161,9 +159,7 @@
           <p>支持批量导入课程，也可以完整备份和恢复全部本地数据。</p>
         </div>
         <div class="data-actions">
-          <button class="secondary-button" id="importCsvBtn" type="button">导入 CSV</button>
-          <button class="secondary-button" id="exportBackupBtn" type="button">导出备份</button>
-          <button class="secondary-button" id="importBackupBtn" type="button">恢复备份</button>
+          <button class="danger-button" id="clearAllBtn" type="button">清空课程</button>
         </div>
       </div>
 
@@ -171,7 +167,7 @@
       <input class="hidden" id="backupFileInput" type="file" accept=".json,application/json">
 
       <div class="data-help">
-        CSV 支持列名：课程名称/课程、学期、学分、分数。JSON 备份会包含课程、档案、目标院校和 AI 接口配置。
+        手机和电脑的数据不会自动同步。换设备时：旧设备点“导出备份”，新设备点“恢复备份”。只导入课程时用“导入 CSV”。CSV 支持列名：课程名称/课程、学期、学分、分数。
       </div>
     </section>
 
@@ -461,6 +457,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=20260703-practical"></script>
+  <script src="script.js?v=20260703-transfer"></script>
 </body>
 </html>

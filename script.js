@@ -59,7 +59,6 @@ const cancelEditBtn = document.querySelector("#cancelEditBtn");
 
 const overallGpaEl = document.querySelector("#overallGpa");
 const weightedAverageEl = document.querySelector("#weightedAverage");
-const simpleAverageEl = document.querySelector("#simpleAverage");
 const totalCreditsEl = document.querySelector("#totalCredits");
 const courseCountEl = document.querySelector("#courseCount");
 const bestSemesterEl = document.querySelector("#bestSemester");
@@ -222,7 +221,6 @@ function renderSummary() {
   const totalCredits = getTotalCredits(courses);
   const overallGpa = calculateGpa(courses);
   const weightedAverage = calculateWeightedAverage(courses);
-  const simpleAverage = calculateSimpleAverage(courses);
   const semesterStats = getSemesterStats();
   const bestSemester = semesterStats
     .filter((item) => item.credits > 0)
@@ -230,7 +228,6 @@ function renderSummary() {
 
   overallGpaEl.textContent = formatGpa(overallGpa);
   weightedAverageEl.textContent = formatAverage(weightedAverage);
-  simpleAverageEl.textContent = formatAverage(simpleAverage);
   totalCreditsEl.textContent = formatCredits(totalCredits);
   courseCountEl.textContent = courses.length;
   bestSemesterEl.textContent = bestSemester ? `${bestSemester.semester} ${formatGpa(bestSemester.gpa)}` : "暂无";
@@ -248,7 +245,6 @@ function renderPracticalInsights() {
   }
 
   const weightedAverage = calculateWeightedAverage(courses);
-  const simpleAverage = calculateSimpleAverage(courses);
   const overallGpa = calculateGpa(courses);
   const below90 = courses.filter((course) => Number(course.score) < 90);
   const below80 = courses.filter((course) => Number(course.score) < 80);
@@ -257,22 +253,12 @@ function renderPracticalInsights() {
   const heavyLowCourses = courses
     .filter((course) => Number(course.credits) >= 3 && Number(course.score) < 90)
     .sort((a, b) => getCoursePriorityScore(b) - getCoursePriorityScore(a));
-  const averageGap = weightedAverage - simpleAverage;
 
   const insights = [];
   insights.push({
     label: "当前水平",
-    value: `加权均分 ${formatAverage(weightedAverage)}，普通均分 ${formatAverage(simpleAverage)}，GPA ${formatGpa(overallGpa)}`
+    value: `加权均分 ${formatAverage(weightedAverage)}，GPA ${formatGpa(overallGpa)}`
   });
-
-  if (Math.abs(averageGap) >= 0.5) {
-    insights.push({
-      label: averageGap < 0 ? "高学分拖累" : "高学分支撑",
-      value: averageGap < 0
-        ? `加权均分比普通均分低 ${Math.abs(averageGap).toFixed(1)}，说明高学分课分数偏低。`
-        : `加权均分比普通均分高 ${averageGap.toFixed(1)}，说明高学分课发挥较好。`
-    });
-  }
 
   insights.push({
     label: "90 分以下",
@@ -392,7 +378,7 @@ function renderSemesterSummary() {
     card.innerHTML = `
       <span>${escapeHtml(item.semester)}</span>
       <strong>${formatGpa(item.gpa)}</strong>
-      <span>${formatCredits(item.credits)} 学分 · ${item.count} 门课 · 加权 ${formatAverage(item.weightedAverage)} · 普均 ${formatAverage(item.simpleAverage)}</span>
+      <span>${formatCredits(item.credits)} 学分 · ${item.count} 门课 · 均分 ${formatAverage(item.weightedAverage)}</span>
     `;
     semesterList.appendChild(card);
   });
@@ -1754,7 +1740,6 @@ function getCoursesSummary() {
   return {
     overallGpa: calculateGpa(courses),
     weightedAverage: calculateWeightedAverage(courses),
-    simpleAverage: calculateSimpleAverage(courses),
     totalCredits: getTotalCredits(courses),
     totalPoints: getTotalPoints(courses),
     courseCount: courses.length,
@@ -1777,8 +1762,7 @@ function getSemesterStats() {
       count: semesterCourses.length,
       credits: getTotalCredits(semesterCourses),
       gpa: calculateGpa(semesterCourses),
-      weightedAverage: calculateWeightedAverage(semesterCourses),
-      simpleAverage: calculateSimpleAverage(semesterCourses)
+      weightedAverage: calculateWeightedAverage(semesterCourses)
     };
   });
 }
@@ -1815,11 +1799,6 @@ function calculateWeightedAverage(courseList) {
   return courseList.reduce((sum, course) => {
     return sum + Number(course.score ?? 0) * Number(course.credits ?? 0);
   }, 0) / totalCredits;
-}
-
-function calculateSimpleAverage(courseList) {
-  if (courseList.length === 0) return 0;
-  return courseList.reduce((sum, course) => sum + Number(course.score ?? 0), 0) / courseList.length;
 }
 
 function getCoursePriorityScore(course) {
