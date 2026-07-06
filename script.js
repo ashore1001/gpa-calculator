@@ -116,12 +116,6 @@ const aiStatus = document.querySelector("#aiStatus");
 const aiReport = document.querySelector("#aiReport");
 const aiEndpointInput = document.querySelector("#aiEndpoint");
 const saveEndpointBtn = document.querySelector("#saveEndpointBtn");
-const gpaTrendChart = document.querySelector("#gpaTrendChart");
-const chartEmptyState = document.querySelector("#chartEmptyState");
-const simCreditsInput = document.querySelector("#simCredits");
-const simScoreInput = document.querySelector("#simScore");
-const simResult = document.querySelector("#simResult");
-const scenarioGrid = document.querySelector("#scenarioGrid");
 const importCsvBtn = document.querySelector("#importCsvBtn");
 const exportBackupBtn = document.querySelector("#exportBackupBtn");
 const importBackupBtn = document.querySelector("#importBackupBtn");
@@ -149,8 +143,6 @@ researchTargetBtn.addEventListener("click", researchTargetRequirements);
 runLocalAnalysisBtn.addEventListener("click", runLocalAnalysis);
 runAiAnalysisBtn.addEventListener("click", runAiAnalysis);
 saveEndpointBtn.addEventListener("click", saveAiEndpoint);
-simCreditsInput.addEventListener("input", updateSimulator);
-simScoreInput.addEventListener("input", updateSimulator);
 importCsvBtn.addEventListener("click", () => csvFileInput.click());
 exportBackupBtn.addEventListener("click", exportBackup);
 importBackupBtn.addEventListener("click", () => backupFileInput.click());
@@ -163,7 +155,6 @@ advancedSection.addEventListener("toggle", () => {
   }
 });
 window.addEventListener("resize", debounce(() => {
-  renderGpaTrendChart();
   renderPlanningDashboard();
 }, 160));
 
@@ -211,10 +202,8 @@ function render() {
   renderCourseTable();
   renderSemesterSummary();
   renderTargets();
-  renderGpaTrendChart();
   renderTargetComparison();
   renderPlanningDashboard();
-  updateSimulator();
   updateGoalResult();
 }
 
@@ -420,160 +409,6 @@ function renderSemesterSummary() {
     `;
     semesterList.appendChild(card);
   });
-}
-
-function renderGpaTrendChart() {
-  const stats = getSemesterProgressStats();
-  const hasData = stats.length > 0;
-  gpaTrendChart.classList.toggle("hidden", !hasData);
-  chartEmptyState.classList.toggle("hidden", hasData);
-
-  if (!hasData) return;
-
-  const { context, width, height } = prepareCanvas(gpaTrendChart, 720, 340);
-  const padding = { top: 34, right: 62, bottom: 76, left: 64 };
-  const plotWidth = width - padding.left - padding.right;
-  const plotHeight = height - padding.top - padding.bottom;
-  const maxCredits = Math.max(1, ...stats.map((item) => item.cumulativeCredits));
-  const xStep = stats.length === 1 ? 0 : plotWidth / (stats.length - 1);
-
-  context.clearRect(0, 0, width, height);
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, width, height);
-
-  drawGrid(context, width, height, padding, plotWidth, plotHeight);
-
-  const gpaPoint = (value, index) => ({
-    x: padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep),
-    y: padding.top + (1 - clamp(value / 5, 0, 1)) * plotHeight
-  });
-  const creditPoint = (value, index) => ({
-    x: padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep),
-    y: padding.top + (1 - clamp(value / maxCredits, 0, 1)) * plotHeight
-  });
-
-  drawLine(context, stats.map((item, index) => gpaPoint(item.gpa, index)), "#2563eb");
-  drawLine(context, stats.map((item, index) => gpaPoint(item.cumulativeGpa, index)), "#0f766e");
-  drawLine(context, stats.map((item, index) => creditPoint(item.cumulativeCredits, index)), "#9a3412", true);
-
-  context.fillStyle = "#475467";
-  context.font = "600 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  context.textAlign = "center";
-  context.textBaseline = "top";
-  stats.forEach((item, index) => {
-    const x = padding.left + (stats.length === 1 ? plotWidth / 2 : index * xStep);
-    const label = formatSemesterLabel(item.semester, stats.length);
-    context.save();
-    context.translate(x, height - 42);
-    context.rotate(stats.length > 4 ? -0.45 : 0);
-    context.fillText(label, 0, 0);
-    context.restore();
-  });
-
-  context.textAlign = "left";
-  context.textBaseline = "alphabetic";
-  context.font = "700 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  context.fillText("GPA", 14, padding.top - 10);
-  context.textAlign = "right";
-  context.fillText("累计学分", width - 12, padding.top - 10);
-}
-
-function drawGrid(context, width, height, padding, plotWidth, plotHeight) {
-  context.strokeStyle = "#e4e8f0";
-  context.lineWidth = 1;
-  context.fillStyle = "#475467";
-  context.font = "600 13px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  context.textAlign = "right";
-  context.textBaseline = "middle";
-
-  for (let i = 0; i <= 5; i += 1) {
-    const y = padding.top + (i / 5) * plotHeight;
-    const label = (5 - i).toFixed(1);
-    context.beginPath();
-    context.moveTo(padding.left, y);
-    context.lineTo(width - padding.right, y);
-    context.stroke();
-    context.fillText(label, padding.left - 8, y + 4);
-  }
-
-  context.strokeStyle = "#cfd6e2";
-  context.beginPath();
-  context.moveTo(padding.left, padding.top);
-  context.lineTo(padding.left, height - padding.bottom);
-  context.lineTo(width - padding.right, height - padding.bottom);
-  context.stroke();
-}
-
-function drawLine(context, points, color, dashed = false) {
-  if (points.length === 0) return;
-
-  context.strokeStyle = color;
-  context.fillStyle = color;
-  context.lineWidth = 3;
-  context.lineJoin = "round";
-  context.lineCap = "round";
-  context.setLineDash(dashed ? [8, 6] : []);
-  context.beginPath();
-  points.forEach((point, index) => {
-    if (index === 0) {
-      context.moveTo(point.x, point.y);
-    } else {
-      context.lineTo(point.x, point.y);
-    }
-  });
-  context.stroke();
-  context.setLineDash([]);
-
-  points.forEach((point) => {
-    context.beginPath();
-    context.arc(point.x, point.y, 4.5, 0, Math.PI * 2);
-    context.fill();
-  });
-}
-
-function updateSimulator() {
-  const credits = Number.parseFloat(simCreditsInput.value);
-  const score = Number.parseFloat(simScoreInput.value);
-  const currentCredits = getTotalCredits(courses);
-  const currentGpa = calculateGpa(courses);
-  const currentPoints = getTotalPoints(courses);
-
-  renderScenarioGrid(credits);
-
-  if (!Number.isFinite(credits) || !Number.isFinite(score)) {
-    simResult.textContent = "输入学分和预计分数后，会显示对总 GPA 的影响。";
-    return;
-  }
-
-  if (credits <= 0 || !isValidScore(score)) {
-    simResult.textContent = "学分需大于 0，分数需在 0 到 100 之间。";
-    return;
-  }
-
-  const projectedGpa = (currentPoints + scoreToPoint(score) * credits) / (currentCredits + credits);
-  const diff = projectedGpa - currentGpa;
-  const trend = diff >= 0 ? "上升" : "下降";
-  simResult.textContent = `这门课绩点 ${formatGpa(scoreToPoint(score))}。加入 ${formatCredits(credits)} 学分后，总 GPA 预计从 ${formatGpa(currentGpa)} ${trend}到 ${formatGpa(projectedGpa)}，变化 ${formatSignedGpa(diff)}。`;
-}
-
-function renderScenarioGrid(credits) {
-  const scenarioCredits = Number.isFinite(credits) && credits > 0 ? credits : 5;
-  const currentCredits = getTotalCredits(courses);
-  const currentPoints = getTotalPoints(courses);
-  const scenarios = [85, 90, 93, 96];
-
-  scenarioGrid.innerHTML = scenarios.map((score) => {
-    const gpa = currentCredits + scenarioCredits > 0
-      ? (currentPoints + scoreToPoint(score) * scenarioCredits) / (currentCredits + scenarioCredits)
-      : scoreToPoint(score);
-    return `
-      <article class="scenario-item">
-        <span>${score} 分</span>
-        <strong>${formatGpa(gpa)}</strong>
-        <small>${formatCredits(scenarioCredits)} 学分后总 GPA</small>
-      </article>
-    `;
-  }).join("");
 }
 
 function updateGoalResult() {
@@ -1809,24 +1644,46 @@ function getSemesterStats() {
   });
 }
 
-function getSemesterProgressStats() {
-  let runningCourses = [];
-  return getSemesters().map((semester) => {
-    const semesterCourses = courses.filter((course) => course.semester === semester);
-    runningCourses = runningCourses.concat(semesterCourses);
-    return {
-      semester,
-      credits: getTotalCredits(semesterCourses),
-      cumulativeCredits: getTotalCredits(runningCourses),
-      gpa: calculateGpa(semesterCourses),
-      cumulativeGpa: calculateGpa(runningCourses)
-    };
-  });
-}
-
 function getSemesters() {
   return Array.from(new Set(courses.map((course) => course.semester)))
-    .sort((a, b) => a.localeCompare(b, "zh-CN"));
+    .sort(compareSemesters);
+}
+
+function compareSemesters(a, b) {
+  const parsedA = parseSemesterOrder(a);
+  const parsedB = parseSemesterOrder(b);
+
+  if (parsedA.group !== parsedB.group) return parsedA.group - parsedB.group;
+  if (parsedA.year !== parsedB.year) return parsedA.year - parsedB.year;
+  if (parsedA.term !== parsedB.term) return parsedA.term - parsedB.term;
+  return String(a).localeCompare(String(b), "zh-CN");
+}
+
+function parseSemesterOrder(value) {
+  const text = String(value || "").trim();
+  const yearMatch = text.match(/(20\d{2})\s*[-—~至]\s*(20\d{2})/);
+  const singleYearMatch = text.match(/(20\d{2})/);
+  const isSummerSchool = /暑期学校|暑校|暑期|夏季|summer/i.test(text);
+
+  if (isSummerSchool && !yearMatch) {
+    return { group: 0, year: 0, term: 0 };
+  }
+
+  const startYear = yearMatch ? Number(yearMatch[1]) : singleYearMatch ? Number(singleYearMatch[1]) : 9999;
+  const term = getSemesterTermOrder(text);
+
+  if (isSummerSchool) {
+    return { group: 1, year: startYear, term: 0 };
+  }
+
+  return { group: 2, year: startYear, term };
+}
+
+function getSemesterTermOrder(text) {
+  if (/上|秋|第一|大一上|fall/i.test(text) || /(?:^|[-_\s])1(?:$|[-_\s]|学期)/.test(text)) return 1;
+  if (/下|春|第二|大一下|spring/i.test(text) || /(?:^|[-_\s])2(?:$|[-_\s]|学期)/.test(text)) return 2;
+  if (/暑|夏|summer/i.test(text)) return 3;
+  return 4;
 }
 
 function calculateGpa(courseList) {

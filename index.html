@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GPA Planner | 升学规划工具</title>
-  <link rel="stylesheet" href="style.css?v=20260706-final">
+  <link rel="stylesheet" href="style.css?v=20260706-final2">
 </head>
 <body>
   <main class="app-shell">
@@ -105,50 +105,6 @@
         <input id="futureCredits" type="number" min="0.25" step="0.25" placeholder="例如：20 或 0.25">
 
         <div class="goal-result" id="goalResult">输入目标 GPA 和未来学分后，会显示未来需要达到的平均 GPA。</div>
-      </section>
-    </section>
-
-    <section class="insight-grid" aria-label="成绩洞察">
-      <section class="panel chart-panel" aria-labelledby="trendTitle">
-        <div class="panel-heading">
-          <div>
-            <h2 id="trendTitle">GPA 趋势</h2>
-            <p>查看每学期 GPA、累计 GPA 和学分增长。</p>
-          </div>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="gpaTrendChart" width="720" height="320" aria-label="GPA 趋势图"></canvas>
-        </div>
-        <div class="chart-legend">
-          <span><i class="legend-dot semester-dot"></i>学期 GPA</span>
-          <span><i class="legend-dot cumulative-dot"></i>累计 GPA</span>
-          <span><i class="legend-dot credit-dot"></i>累计学分</span>
-        </div>
-        <div class="empty-state hidden" id="chartEmptyState">至少添加一门课程后，这里会显示趋势图。</div>
-      </section>
-
-      <section class="panel simulator-panel" aria-labelledby="simulatorTitle">
-        <div class="panel-heading">
-          <div>
-            <h2 id="simulatorTitle">成绩影响模拟器</h2>
-            <p>看看一门未来课程会把总 GPA 推到哪里。</p>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div>
-            <label for="simCredits">未来课程学分</label>
-            <input id="simCredits" type="number" min="0.25" step="0.25" placeholder="例如：5">
-          </div>
-          <div>
-            <label for="simScore">预计分数</label>
-            <input id="simScore" type="number" min="0" max="100" step="0.1" placeholder="例如：93">
-          </div>
-        </div>
-
-        <div class="sim-result" id="simResult">输入学分和预计分数后，会显示对总 GPA 的影响。</div>
-
-        <div class="scenario-grid" id="scenarioGrid"></div>
       </section>
     </section>
 
@@ -461,6 +417,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=20260706-final"></script>
+  <script src="script.js?v=20260706-final2"></script>
 </body>
 </html>
