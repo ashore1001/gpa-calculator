@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GPA Planner | 升学规划工具</title>
-  <link rel="stylesheet" href="style.css?v=20260706-final2">
+  <title>GPA Calculator | 成绩管理工具</title>
+  <link rel="stylesheet" href="style.css?v=20260706-gradeonly">
 </head>
 <body>
   <main class="app-shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">Student Planning Tool</p>
-        <h1>GPA 与升学规划工具</h1>
-        <p class="hero-copy">先把均分、GPA、拖后腿课程和提分优先级算清楚；升学规划放到后面作为进阶功能。</p>
+        <p class="eyebrow">Student Grade Tool</p>
+        <h1>GPA 与成绩管理工具</h1>
+        <p class="hero-copy">记录课程成绩，计算 GPA、加权均分、学期表现和提分优先级。</p>
       </div>
       <div class="hero-actions">
         <button class="secondary-button" id="importCsvBtn" type="button">导入 CSV</button>
@@ -127,7 +127,7 @@
       </div>
     </section>
 
-    <details class="advanced-section">
+    <details class="advanced-section hidden" aria-hidden="true">
       <summary>进阶规划和 AI 分析</summary>
 
     <section class="panel dashboard-panel" aria-labelledby="dashboardTitle">
@@ -417,6 +417,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=20260706-final2"></script>
+  <script src="script.js?v=20260706-gradeonly"></script>
 </body>
 </html>
