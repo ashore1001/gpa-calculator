@@ -68,6 +68,7 @@ const advancedSection = document.querySelector(".advanced-section");
 const tableBody = document.querySelector("#courseTableBody");
 const emptyState = document.querySelector("#emptyState");
 const courseTableWrap = document.querySelector("#courseTableWrap");
+const semesterOverview = document.querySelector("#semesterOverview");
 const semesterList = document.querySelector("#semesterList");
 const semesterFilter = document.querySelector("#semesterFilter");
 
@@ -366,19 +367,56 @@ function renderSemesterFilter() {
 function renderSemesterSummary() {
   const stats = getSemesterStats();
   semesterList.innerHTML = "";
+  semesterOverview.innerHTML = "";
 
   if (stats.length === 0) {
-    semesterList.innerHTML = '<div class="empty-state">添加课程后，这里会显示每个学期的 GPA。</div>';
+    semesterList.innerHTML = '<div class="empty-state">添加课程后，这里会显示每个学期的均分、GPA 和课程表现。</div>';
     return;
   }
 
-  stats.forEach((item) => {
+  const bestAverage = stats.slice().sort((a, b) => b.weightedAverage - a.weightedAverage)[0];
+  const weakestAverage = stats.slice().sort((a, b) => a.weightedAverage - b.weightedAverage)[0];
+  const bestGpa = stats.slice().sort((a, b) => b.gpa - a.gpa)[0];
+
+  semesterOverview.innerHTML = `
+    <article>
+      <span>最高均分</span>
+      <strong>${escapeHtml(bestAverage.semester)} · ${formatAverage(bestAverage.weightedAverage)}</strong>
+    </article>
+    <article>
+      <span>最高 GPA</span>
+      <strong>${escapeHtml(bestGpa.semester)} · ${formatGpa(bestGpa.gpa)}</strong>
+    </article>
+    <article>
+      <span>最需要复盘</span>
+      <strong>${escapeHtml(weakestAverage.semester)} · ${formatAverage(weakestAverage.weightedAverage)}</strong>
+    </article>
+  `;
+
+  stats.forEach((item, index) => {
+    const previous = index > 0 ? stats[index - 1] : null;
+    const averageDiff = previous ? item.weightedAverage - previous.weightedAverage : 0;
+    const gpaDiff = previous ? item.gpa - previous.gpa : 0;
     const card = document.createElement("article");
     card.className = "semester-item";
     card.innerHTML = `
-      <span>${escapeHtml(item.semester)}</span>
-      <strong>${formatGpa(item.gpa)}</strong>
-      <span>${formatCredits(item.credits)} 学分 · ${item.count} 门课 · 均分 ${formatAverage(item.weightedAverage)}</span>
+      <div class="semester-item-head">
+        <div>
+          <span>${escapeHtml(item.semester)}</span>
+          <strong>${formatAverage(item.weightedAverage)}</strong>
+        </div>
+        <b>${previous ? formatSemesterTrend(averageDiff) : "起点"}</b>
+      </div>
+      <div class="semester-metrics">
+        <span>GPA <strong>${formatGpa(item.gpa)}</strong>${previous ? ` ${formatSignedGpa(gpaDiff)}` : ""}</span>
+        <span>学分 <strong>${formatCredits(item.credits)}</strong></span>
+        <span>课程 <strong>${item.count}</strong></span>
+        <span>90 以下 <strong>${item.below90Count}</strong></span>
+      </div>
+      <div class="semester-extremes">
+        <span>最高：${item.bestCourse ? `${escapeHtml(item.bestCourse.name)} ${formatScore(item.bestCourse.score)}` : "暂无"}</span>
+        <span>最低：${item.weakestCourse ? `${escapeHtml(item.weakestCourse.name)} ${formatScore(item.weakestCourse.score)}` : "暂无"}</span>
+      </div>
     `;
     semesterList.appendChild(card);
   });
@@ -1757,12 +1795,16 @@ function getCoursesSummary() {
 function getSemesterStats() {
   return getSemesters().map((semester) => {
     const semesterCourses = courses.filter((course) => course.semester === semester);
+    const sortedByScore = semesterCourses.slice().sort((a, b) => Number(a.score) - Number(b.score));
     return {
       semester,
       count: semesterCourses.length,
       credits: getTotalCredits(semesterCourses),
       gpa: calculateGpa(semesterCourses),
-      weightedAverage: calculateWeightedAverage(semesterCourses)
+      weightedAverage: calculateWeightedAverage(semesterCourses),
+      below90Count: semesterCourses.filter((course) => Number(course.score) < 90).length,
+      weakestCourse: sortedByScore[0] || null,
+      bestCourse: sortedByScore[sortedByScore.length - 1] || null
     };
   });
 }
@@ -2239,6 +2281,12 @@ function formatGpa(value) {
 function formatSignedGpa(value) {
   const number = Number(value || 0);
   return `${number >= 0 ? "+" : ""}${number.toFixed(2)}`;
+}
+
+function formatSemesterTrend(value) {
+  const number = Number(value || 0);
+  if (Math.abs(number) < 0.05) return "持平";
+  return `${number > 0 ? "上升" : "下降"} ${Math.abs(number).toFixed(1)}`;
 }
 
 function formatCredits(value) {

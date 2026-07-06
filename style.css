@@ -1080,9 +1080,38 @@ td {
   text-align: center;
 }
 
-.semester-list {
+.semester-overview {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.semester-overview article {
+  border: 1px solid #e4e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfe;
+}
+
+.semester-overview span,
+.semester-overview strong {
+  display: block;
+}
+
+.semester-overview span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.semester-overview strong {
+  margin-top: 4px;
+  font-size: 1rem;
+}
+
+.semester-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
@@ -1093,7 +1122,25 @@ td {
   background: #fbfcfe;
 }
 
-.semester-item span {
+.semester-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.semester-item-head b {
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.semester-item span,
+.semester-extremes span {
   display: block;
   color: var(--muted);
   font-size: 0.86rem;
@@ -1103,6 +1150,34 @@ td {
   display: block;
   margin: 4px 0;
   font-size: 1.35rem;
+}
+
+.semester-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.semester-metrics span {
+  border: 1px solid #edf0f5;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.semester-metrics strong {
+  display: inline;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.semester-extremes {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid #edf0f5;
+  padding-top: 10px;
 }
 
 .hidden {
@@ -1127,6 +1202,7 @@ td {
   }
 
   .analysis-output-grid,
+  .semester-overview,
   .semester-list,
   .compare-grid {
     grid-template-columns: 1fr;
@@ -1225,6 +1301,10 @@ td {
 
   .priority-item {
     grid-template-columns: 1fr;
+  }
+
+  .semester-metrics {
+    grid-template-columns: 1fr 1fr;
   }
 
   .analysis-panel,
